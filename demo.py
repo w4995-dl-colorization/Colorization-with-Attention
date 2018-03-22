@@ -24,7 +24,7 @@ conv8_313 = autocolor.inference(data_l)
 # Load model and run the graph
 saver = tf.train.Saver()
 with tf.Session() as sess:
-    saver.restore(sess, 'models/model.ckpt-1740')
+    saver.restore(sess, 'models/model.ckpt-1700')
     conv8_313 = sess.run(conv8_313)
 
 # Colorize and save the image

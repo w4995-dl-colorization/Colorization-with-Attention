@@ -1,4 +1,6 @@
 *.pyc
 *.jpg
 data/Opencountry/*
+data/__*
 models/*
+probs.npy
