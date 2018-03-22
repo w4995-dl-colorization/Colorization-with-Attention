@@ -8,12 +8,12 @@ http://cvcl.mit.edu/database.htm
 
 1. transform your training data to text_record file
 ```
-python tools/create_imagenet_list.py
+python3 tools/create_imagenet_list.py
 ```
 
 2. calculate the training data prior-probs(reference to tools/create_prior_probs.py)
 ```
-python tools/create_prior_probs.py
+python3 tools/create_prior_probs.py
 ```
 
 3. write your own train-configure file and put it in conf/ (reference to conf/train.cfg for an example)
@@ -23,12 +23,12 @@ python tools/create_prior_probs.py
 CPU:
 
 ```
-python tools/train.py -c conf/train.cfg
+python3 tools/train.py -c conf/train.cfg
 ```
 
 GPU:
 ```
-python tools/train.py -c conf/train_gpu.cfg
+python3 tools/train.py -c conf/train_gpu.cfg
 ```
 
 ### Test demo
@@ -41,7 +41,7 @@ python tools/train.py -c conf/train_gpu.cfg
 2. Test
 
 	```
-	python demo.py
+	python3 demo.py
 	```
 
 ### Acknowledgement
