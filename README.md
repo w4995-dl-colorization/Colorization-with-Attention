@@ -1,5 +1,5 @@
 
-###Train
+### Train
 
 ##### Download MIT CVCL Opencountry dataset
 http://cvcl.mit.edu/database.htm
@@ -19,11 +19,19 @@ python tools/create_prior_probs.py
 3. write your own train-configure file and put it in conf/ (reference to conf/train.cfg for an example)
 
 4. train (python tools/train.py -c $your_configure_file)
+
+CPU:
+
 ```
 python tools/train.py -c conf/train.cfg
 ```
 
-### test demo
+GPU:
+```
+python tools/train.py -c conf/train_gpu.cfg
+```
+
+### Test demo
 
 1. Download pretrained model(<a>https://drive.google.com/file/d/0B-yiAeTLLamRWVVDQ1VmZ3BxWG8/view?usp=sharing</a>)
 

@@ -275,79 +275,82 @@ def softmax(x):
     return e_x / np.expand_dims(e_x.sum(axis=-1), axis=-1) # only difference
 
 
+# Combine gray-scale image and colorization into a rgb image
 def decode(data_l, conv8_313, rebalance=1):
-  """
-  Args:
-    data_l   : [1, height, width, 1]
-    conv8_313: [1, height/4, width/4, 313]
-  Returns:
-    img_rgb  : [height, width, 3]
-  """
-  data_l = data_l + 50
-  _, height, width, _ = data_l.shape
-  data_l = data_l[0, :, :, :]
-  conv8_313 = conv8_313[0, :, :, :]
-  enc_dir = './resources'
-  conv8_313_rh = conv8_313 * rebalance
-  class8_313_rh = softmax(conv8_313_rh)
+    """
+    Args:
+      data_l   : [1, height, width, 1]
+      conv8_313: [1, height/4, width/4, 313]
+    Returns:
+      img_rgb  : [height, width, 3]
+    """
+    data_l = data_l + 50
+    _, height, width, _ = data_l.shape
+    data_l = data_l[0, :, :, :]
+    conv8_313 = conv8_313[0, :, :, :]
+    enc_dir = './resources'
+    conv8_313_rh = conv8_313 * rebalance
+    class8_313_rh = softmax(conv8_313_rh)
 
-  cc = np.load(os.path.join(enc_dir, 'pts_in_hull.npy'))
-  
-  data_ab = np.dot(class8_313_rh, cc)
-  data_ab = resize(data_ab, (height, width))
-  img_lab = np.concatenate((data_l, data_ab), axis=-1)
-  img_rgb = color.lab2rgb(img_lab)
+    cc = np.load(os.path.join(enc_dir, 'pts_in_hull.npy'))
 
-  return img_rgb
+    data_ab = np.dot(class8_313_rh, cc)
+    data_ab = resize(data_ab, (height, width))
+    img_lab = np.concatenate((data_l, data_ab), axis=-1)
+    img_rgb = color.lab2rgb(img_lab)
+
+    return img_rgb
+
 
 def get_data_l(image_path):
-  """
-  Args:
-    image_path  
-  Returns:
-    data_l 
-  """
-  data = imread(image_path)
-  data = data[None, :, :, :]
-  img_lab = color.rgb2lab(data)
-  img_l = img_lab[:, :, :, 0:1]
-  data_l = img_l - 50
-  data_l = data_l.astype(dtype=np.float32)
-  return data, data_l
+    """
+    Args:
+      image_path
+    Returns:
+      data_l
+    """
+    data = imread(image_path)
+    data = data[None, :, :, :]
+    img_lab = color.rgb2lab(data)
+    img_l = img_lab[:, :, :, 0:1]
+    data_l = img_l - 50
+    data_l = data_l.astype(dtype=np.float32)
+    return data, data_l
+
 
 def process_config(conf_file):
-  """process configure file to generate CommonParams, DataSetParams, NetParams 
-  Args:
-    conf_file: configure file path 
-  Returns:
-    CommonParams, DataSetParams, NetParams, SolverParams
-  """
-  common_params = {}
-  dataset_params = {}
-  net_params = {}
-  solver_params = {}
+    """process configure file to generate CommonParams, DataSetParams, NetParams
+    Args:
+      conf_file: configure file path
+    Returns:
+      CommonParams, DataSetParams, NetParams, SolverParams
+    """
+    common_params = {}
+    dataset_params = {}
+    net_params = {}
+    solver_params = {}
 
-  #configure_parser
-  config = configparser.ConfigParser()
-  config.read(conf_file)
+    # configure_parser
+    config = configparser.ConfigParser()
+    config.read(conf_file)
 
-  #sections and options
-  for section in config.sections():
-    #construct common_params
-    if section == 'Common':
-      for option in config.options(section):
-        common_params[option] = config.get(section, option)
-    #construct dataset_params
-    if section == 'DataSet':
-      for option in config.options(section):
-        dataset_params[option] = config.get(section, option)
-    #construct net_params
-    if section == 'Net':
-      for option in config.options(section):
-        net_params[option] = config.get(section, option)
-    #construct solver_params
-    if section == 'Solver':
-      for option in config.options(section):
-        solver_params[option] = config.get(section, option)
+    # sections and options
+    for section in config.sections():
+        # construct common_params
+        if section == 'Common':
+            for option in config.options(section):
+                common_params[option] = config.get(section, option)
+        # construct dataset_params
+        if section == 'DataSet':
+            for option in config.options(section):
+                dataset_params[option] = config.get(section, option)
+        # construct net_params
+        if section == 'Net':
+            for option in config.options(section):
+                net_params[option] = config.get(section, option)
+        # construct solver_params
+        if section == 'Solver':
+            for option in config.options(section):
+                solver_params[option] = config.get(section, option)
 
-  return common_params, dataset_params, net_params, solver_params
+    return common_params, dataset_params, net_params, solver_params

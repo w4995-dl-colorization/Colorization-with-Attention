@@ -1,2 +1,4 @@
 *.pyc
+*.jpg
 data/Opencountry/*
+models/*
