@@ -8,7 +8,6 @@ from datetime import datetime
 
 
 class Solver(object):
-
     def __init__(self, train=True, common_params=None, solver_params=None, net_params=None, dataset_params=None):
         if common_params:
             self.device = common_params['device']
@@ -66,7 +65,8 @@ class Solver(object):
                     self.summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
 
             for var in tf.trainable_variables():
-                self.summaries.append(tf.summary.histogram(var.op.name, var))
+                if var is not None:
+                    self.summaries.append(tf.summary.histogram(var.op.name, var))
 
             summary_op = tf.summary.merge(self.summaries)
 
@@ -116,4 +116,4 @@ class Solver(object):
                 # Save the model checkpoint periodically.
                 if step % 100 == 0:
                     checkpoint_path = os.path.join(self.train_dir, 'model.ckpt')
-                    saver.save(sess, checkpoint_path, global_step=step)
+                    saver.save(sess, checkpoint_path)

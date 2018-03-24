@@ -1,17 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
-import numpy as np
-import re
+from ops import conv2d, deconv2d, batch_norm
 
-from ops import *
-from data import DataSet
-import time
-from datetime import datetime
-import os
-import sys
 
 class Net(object):
 
@@ -115,11 +104,11 @@ class Net(object):
         Args:
           conv8_313: 4-D tensor [batch_size, height/4, width/4, 313],
                      predicted ab probability distribution of images
-          prior_boost_nongray: 
+          prior_boost_nongray:
           gt_ab_313: 4-D tensor [batch_size, height/4, width/4, 313],
                      real ab probability distribution of images
         Return:
-          new_loss: 
+          new_loss: L_cl(Z_predicted, Z) as in the paper
           g_loss: cross_entropy between predicted and real ab probability
                   distribution of images
         """
@@ -128,10 +117,10 @@ class Net(object):
         flat_gt_ab_313 = tf.reshape(gt_ab_313, [-1, 313])
         g_loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels=flat_gt_ab_313, logits=flat_conv8_313)) / (self.batch_size)
 
-        tf.summary.scalar('weight_loss', tf.add_n(tf.get_collection('losses', scope=scope)))
-        #
         dl2c = tf.gradients(g_loss, conv8_313)
         dl2c = tf.stop_gradient(dl2c)
-        #
-        new_loss = tf.reduce_sum(dl2c * conv8_313 * prior_boost_nongray) + tf.add_n(tf.get_collection('losses', scope=scope))
+
+        weight_loss = tf.add_n(tf.get_collection('losses', scope=scope))
+        tf.summary.scalar('weight_loss', weight_loss)
+        new_loss = tf.reduce_sum(dl2c * conv8_313 * prior_boost_nongray) + weight_loss
         return new_loss, g_loss

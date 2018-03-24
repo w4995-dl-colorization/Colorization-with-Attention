@@ -6,19 +6,21 @@ http://cvcl.mit.edu/database.htm
 
 #### Train customer data
 
-1. transform your training data to text_record file
+1. Transform your training data to text_record file
 ```
 python3 tools/create_imagenet_list.py
 ```
 
-2. calculate the training data prior-probs(reference to tools/create_prior_probs.py)
+2. Calculate the training data prior-probs(reference to tools/create_prior_probs.py)
+Note: Currently, each bin has to appear at least once in the training images in order to avoid breaking the training procedure. If training images do not cover all the colors, you can use
+the existing "prior_probs.npy" in the resource folder by skipping this step.
 ```
 python3 tools/create_prior_probs.py
 ```
 
-3. write your own train-configure file and put it in conf/ (reference to conf/train.cfg for an example)
+3. Write your own train-configure file and put it in conf/ (reference to conf/train.cfg for an example)
 
-4. train (python tools/train.py -c $your_configure_file)
+4. Train
 
 CPU:
 

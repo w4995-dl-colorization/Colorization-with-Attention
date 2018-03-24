@@ -82,6 +82,8 @@ class DataSet(object):
             images = self.image_process(images)
             images = np.asarray(images, dtype=np.uint8)
 
+            # Put (data_l, gt_ab_313, prior_boost_nongray)
+            # into the batch_queue. For details, see utils.py/preprocess
             self.batch_queue.put(preprocess(images))
 
     def image_process(self, batch):
@@ -91,7 +93,6 @@ class DataSet(object):
         Returns:
           image: a list of 3-D ndarray [height, width, 3], processed rgb image batch
         """
-        
         def _random_crop(batch, crop_shape, padding=None):
             oshape = np.shape(batch[0])
 
