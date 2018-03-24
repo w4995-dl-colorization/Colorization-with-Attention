@@ -1,4 +1,6 @@
 ##### custom
+data/*
+models/*
 
 ##### vscode
 .vscode/*
