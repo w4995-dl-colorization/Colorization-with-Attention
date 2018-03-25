@@ -82,7 +82,7 @@ class DataSet(object):
             images = self.image_process(images)
             images = np.asarray(images, dtype=np.uint8)
 
-            # Put (data_l, gt_ab_313, prior_boost_nongray)
+            # Put (data_l, gt_ab_313, prior_color_weight_nongray)
             # into the batch_queue. For details, see utils.py/preprocess
             self.batch_queue.put(preprocess(images))
 

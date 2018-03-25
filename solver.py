@@ -31,13 +31,13 @@ class Solver(object):
         with tf.device(self.device):
             self.data_l = tf.placeholder(tf.float32, (self.batch_size, self.height, self.width, 1))
             self.gt_ab_313 = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4), 313))
-            self.prior_boost_nongray = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4), 1))
+            self.prior_color_weight_nongray = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4), 1))
 
             self.conv8_313 = self.net.inference(self.data_l)
-            new_loss, g_loss = self.net.loss(scope, self.conv8_313, self.prior_boost_nongray, self.gt_ab_313)
+            new_loss = self.net.loss(scope, self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313)
             tf.summary.scalar('new_loss', new_loss)
-            tf.summary.scalar('total_loss', g_loss)
-        return new_loss, g_loss
+            #tf.summary.scalar('total_loss', g_loss)
+        return new_loss
 
     def train_model(self):
         with tf.device(self.device):
@@ -47,7 +47,7 @@ class Solver(object):
                                                  self.decay_steps, self.lr_decay, staircase=True)
             opt = tf.train.AdamOptimizer(learning_rate=learning_rate, beta2=0.99)
             with tf.name_scope('gpu') as scope:
-                new_loss, self.total_loss = self.construct_graph(scope)
+                new_loss = self.construct_graph(scope)
                 self.summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
 
             # Compute gradient, moving average of weights and update weights
@@ -89,9 +89,9 @@ class Solver(object):
             for step in range(self.max_steps):
                 start_time = time.time()
                 t1 = time.time()
-                data_l, gt_ab_313, prior_boost_nongray = self.dataset.batch()
+                data_l, gt_ab_313, prior_color_weight_nongray = self.dataset.batch()
                 t2 = time.time()
-                _, loss_value = sess.run([train_op, self.total_loss], feed_dict={self.data_l:data_l, self.gt_ab_313:gt_ab_313, self.prior_boost_nongray:prior_boost_nongray})
+                _, loss_value = sess.run([train_op, new_loss], feed_dict={self.data_l:data_l, self.gt_ab_313:gt_ab_313, self.prior_color_weight_nongray:prior_color_weight_nongray})
                 duration = time.time() - start_time
                 t3 = time.time()
                 print('io: ' + str(t2 - t1) + '; compute: ' + str(t3 - t2))
@@ -110,7 +110,7 @@ class Solver(object):
 
                 # Record progress periodically.
                 if step % 20 == 0:
-                    summary_str = sess.run(summary_op, feed_dict={self.data_l:data_l, self.gt_ab_313:gt_ab_313, self.prior_boost_nongray:prior_boost_nongray})
+                    summary_str = sess.run(summary_op, feed_dict={self.data_l:data_l, self.gt_ab_313:gt_ab_313, self.prior_color_weight_nongray:prior_color_weight_nongray})
                     summary_writer.add_summary(summary_str, step)
 
                 # Save the model checkpoint periodically.

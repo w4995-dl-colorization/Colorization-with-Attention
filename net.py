@@ -95,16 +95,18 @@ class Net(object):
         temp_conv = conv2d('conv' + str(conv_num), temp_conv, [1, 1, 256, 313], stride=1, relu=False, wd=self.weight_decay)
         conv_num += 1
 
+
         conv8_313 = temp_conv
         return conv8_313
 
-    def loss(self, scope, conv8_313, prior_boost_nongray, gt_ab_313):
+    def loss(self, scope, conv8_313, prior_color_weight_nongray, gt_ab_313):
         """loss
 
         Args:
           conv8_313: 4-D tensor [batch_size, height/4, width/4, 313],
                      predicted ab probability distribution of images
-          prior_boost_nongray:
+          prior_color_weight_nongray: 4-D tensor [batch_size, height/4, width/4, 313],
+                               prior weight for each color bin on the ab gamut
           gt_ab_313: 4-D tensor [batch_size, height/4, width/4, 313],
                      real ab probability distribution of images
         Return:
@@ -113,14 +115,22 @@ class Net(object):
                   distribution of images
         """
 
-        flat_conv8_313 = tf.reshape(conv8_313, [-1, 313])
-        flat_gt_ab_313 = tf.reshape(gt_ab_313, [-1, 313])
-        g_loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels=flat_gt_ab_313, logits=flat_conv8_313)) / (self.batch_size)
+        # flat_conv8_313 = tf.reshape(conv8_313, [-1, 313])
+        # flat_gt_ab_313 = tf.reshape(gt_ab_313, [-1, 313])
+        # g_loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels=flat_gt_ab_313, logits=flat_conv8_313)) / (self.batch_size)
 
-        dl2c = tf.gradients(g_loss, conv8_313)
-        dl2c = tf.stop_gradient(dl2c)
+        # dl2c = tf.gradients(g_loss, conv8_313)
+        # dl2c = tf.stop_gradient(dl2c)
 
         weight_loss = tf.add_n(tf.get_collection('losses', scope=scope))
         tf.summary.scalar('weight_loss', weight_loss)
-        new_loss = tf.reduce_sum(dl2c * conv8_313 * prior_boost_nongray) + weight_loss
-        return new_loss, g_loss
+
+        z_real_313 = tf.nn.softmax(gt_ab_313)
+        z_pred_313 = tf.nn.softmax(conv8_313)
+        new_loss = -1*tf.reduce_sum(prior_color_weight_nongray * z_real_313*tf.log(z_pred_313))/(self.batch_size) + weight_loss
+
+
+        # prior_color_weight_nongray (batch_size, height/4, width/4, 1)
+        #new_loss = tf.reduce_sum(dl2c * conv8_313 * prior_color_weight_nongray) + weight_loss
+        return new_loss#, g_loss
+

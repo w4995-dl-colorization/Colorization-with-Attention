@@ -285,7 +285,7 @@ def preprocess(data):
     Return:
       data_l: L channel batch (N * H * W * 1)
       gt_ab_313: ab discrete channel batch (N * H/4 * W/4 * 313)
-      prior_boost_nongray: the weight after rebalancing of each non-gray pixel
+      prior_color_weight_nongray: the weight after rebalancing of each non-gray pixel
       at each image in the batch (N * H/4 * W/4 * 1)
     '''
     warnings.filterwarnings("ignore")
@@ -323,10 +323,10 @@ def preprocess(data):
     prior_boost = _prior_boost(gt_ab_313)
 
     # Get the weight of each non-gray pixel
-    # prior_boost_nongray: [N, 1, H/4, W/4]
-    prior_boost_nongray = prior_boost * nongray_mask
+    # prior_color_weight_nongray: [N, 1, H/4, W/4]
+    prior_color_weight_nongray = prior_boost * nongray_mask
 
-    return data_l, gt_ab_313, prior_boost_nongray
+    return data_l, gt_ab_313, prior_color_weight_nongray
 
 
 def softmax(x):
@@ -336,26 +336,39 @@ def softmax(x):
 
 
 # Combine gray-scale image and colorization into a rgb image
-def decode(data_l, conv8_313, rebalance=1):
+def decode(data_l, conv8_313, temperature=1):
     """
     Args:
-      data_l   : [1, height, width, 1]
-      conv8_313: [1, height/4, width/4, 313]
+      data_l   : [1, height, width, 1], real gray image (the l channel)
+      conv8_313: [1, height/4, width/4, 313], predicted distribution
+                 at each color bin
+      temperature: a value between 0 and 1 that balance mode and mean in
+                   the color bin distribution as discussed in sec2.3.
     Returns:
-      img_rgb  : [height, width, 3]
+      img_rgb  : [height, width, 3], predicted colorized image
     """
     data_l = data_l + 50
     _, height, width, _ = data_l.shape
+
+    # data_l (height/4, width/4, 1)
     data_l = data_l[0, :, :, :]
+
+    # conv8_313 (height/4, width/4, 313)
     conv8_313 = conv8_313[0, :, :, :]
     enc_dir = './resources'
-    conv8_313_rh = conv8_313 * rebalance
+
+    conv8_313_rh = conv8_313/temperature
     class8_313_rh = softmax(conv8_313_rh)
 
+    # Load color bin and combine them according to the predicted
+    # distribution on color bins for each pixel
     cc = np.load(os.path.join(enc_dir, 'pts_in_hull.npy'))
-
     data_ab = np.dot(class8_313_rh, cc)
+
+    # height/4 x width/4 -> height x width
     data_ab = resize(data_ab, (height, width))
+
+    # Integrate color into the image
     img_lab = np.concatenate((data_l, data_ab), axis=-1)
     img_rgb = color.lab2rgb(img_lab)
 
