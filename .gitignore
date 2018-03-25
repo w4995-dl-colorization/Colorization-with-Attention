@@ -2,6 +2,12 @@
 data/*
 models/*
 imagenethttp.txt
+*.pyc
+*.jpg
+data/Opencountry/*
+data/__*
+models/*
+probs.npy
 
 ##### vscode
 .vscode/*
