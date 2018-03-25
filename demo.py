@@ -6,7 +6,7 @@ from skimage.io import imsave
 import cv2
 
 # Read image
-img = cv2.imread('data/Opencountry/land516.jpg')
+img = cv2.imread('data/imagenet_animal_resized/n00015388_5358.JPEG')
 
 # Convert image from rgb to gray
 if len(img.shape) == 3:
