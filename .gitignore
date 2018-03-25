@@ -1,6 +1,7 @@
 ##### custom
 data/*
 models/*
+imagenethttp.txt
 
 ##### vscode
 .vscode/*
