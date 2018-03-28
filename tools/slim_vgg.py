@@ -191,19 +191,17 @@ def vgg_16(inputs,
                         outputs_collections=end_points_collection):
       net = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
       net = slim.max_pool2d(net, [2, 2], scope='pool1')
-      print("1", net) #add by James for debugging
       net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
       net = slim.max_pool2d(net, [2, 2], scope='pool2')
-      print("2", net) #add by James for debugging
+      print("Attention 1", net) #add by James for debugging
       net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
       net = slim.max_pool2d(net, [2, 2], scope='pool3')
-      print("3", net) #add by James for debugging
+      print("Attention 2", net) #add by James for debugging
       net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
       net = slim.max_pool2d(net, [2, 2], scope='pool4')
-      print("4", net) #add by James for debugging
       net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
       net = slim.max_pool2d(net, [2, 2], scope='pool5')
-      print("5", net) #add by James for debugging
+      print("Attention 3", net) #add by James for debugging
 
       # Use conv2d instead of fully_connected layers.
       net = slim.conv2d(net, 4096, [7, 7], padding=fc_conv_padding, scope='fc6')
