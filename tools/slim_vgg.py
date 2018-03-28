@@ -184,6 +184,11 @@ def vgg_16(inputs,
       or the input to the logits layer (if num_classes is 0 or None).
     end_points: a dict of tensors with intermediate activations.
   """
+
+    #   Attention 1 Tensor("vgg_16/pool2/MaxPool:0", shape=(?, 56, 56, 128), dtype=float32)
+    #   Attention 2 Tensor("vgg_16/pool3/MaxPool:0", shape=(?, 28, 28, 256), dtype=float32)
+    #   Attention 3 Tensor("vgg_16/pool5/MaxPool:0", shape=(?, 7, 7, 512), dtype=float32)
+
   with tf.variable_scope(scope, 'vgg_16', [inputs]) as sc:
     end_points_collection = sc.original_name_scope + '_end_points'
     # Collect outputs for conv2d, fully_connected and max_pool2d.
@@ -194,6 +199,9 @@ def vgg_16(inputs,
       net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
       net = slim.max_pool2d(net, [2, 2], scope='pool2')
       print("Attention 1", net) #add by James for debugging
+      att1 = net # attention out, high
+      heatmap1 = notdidyet# need some tf operations rather than np
+      #later run sess.run(heatmap1)
       net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
       net = slim.max_pool2d(net, [2, 2], scope='pool3')
       print("Attention 2", net) #add by James for debugging
