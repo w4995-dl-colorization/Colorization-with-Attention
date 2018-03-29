@@ -200,14 +200,14 @@ def vgg_16(inputs,
       net = slim.max_pool2d(net, [2, 2], scope='pool2')
       print("Attention 1", net) #add by James for debugging
       att1 = net # attention out, high
-      heatmap1 = tf.reduce_sum(tf.square(att1), 3, keep_dims=True)# need some tf operations rather than np
+      heatmap1 = tf.reduce_sum(tf.square(att1), 3)
       print(heatmap1)
       #later run sess.run(heatmap1)
       net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
       net = slim.max_pool2d(net, [2, 2], scope='pool3')
       print("Attention 2", net) #add by James for debugging
       att2 = net # attention out, high
-      heatmap2 = tf.reduce_sum(tf.square(att2), 3, keep_dims=True)# need some tf operations rather than np
+      heatmap2 = tf.reduce_sum(tf.square(att2), 3)
       print(heatmap2)
       net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
       net = slim.max_pool2d(net, [2, 2], scope='pool4')
@@ -215,7 +215,7 @@ def vgg_16(inputs,
       net = slim.max_pool2d(net, [2, 2], scope='pool5')
       print("Attention 3", net) #add by James for debugging
       att3 = net # attention out, high
-      heatmap3 = tf.reduce_sum(tf.square(att3), 3, keep_dims=True)# need some tf operations rather than np
+      heatmap3 = tf.reduce_sum(tf.square(att3), 3)
       print(heatmap3)
 
       # Use conv2d instead of fully_connected layers.
@@ -238,7 +238,10 @@ def vgg_16(inputs,
         if spatial_squeeze:
           net = tf.squeeze(net, [1, 2], name='fc8/squeezed')
         end_points[sc.name + '/fc8'] = net
-      return net, end_points
+      end_points['hm1'] = heatmap1
+      end_points['hm2'] = heatmap2
+      end_points['hm3'] = heatmap3
+      return net, end_points #add att1/2/3 return
 vgg_16.default_image_size = 224
 
 
