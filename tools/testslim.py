@@ -30,8 +30,8 @@ with tf.Session() as sess:
   jet_hm = cv2.applyColorMap(resized_norm_hm, cv2.COLORMAP_JET)
 
   # superimposed
-  #gray_pic = cv2.cvtColor(pic, cv2.COLOR_RGB2GRAY)
-  #gray_rgb_pic = cv2.cvtColor(gray_pic, cv2.COLOR_GRAY2RGB)
-  #output = cv2.addWeighted(gray_rgb_pic, 0.7, resized_norm_hm, 0.3, 0)
-  # output = cv2.applyColorMap(output, cv2.COLORMAP_JET)
-  cv2.imwrite("heatmap.png", jet_hm)
+  gray_pic = cv2.cvtColor(pic, cv2.COLOR_RGB2GRAY)
+  gray_rgb_pic = cv2.cvtColor(gray_pic, cv2.COLOR_GRAY2RGB)
+  print(jet_hm.shape, gray_rgb_pic.shape)
+  output = cv2.addWeighted(gray_rgb_pic, 0.7, resized_norm_hm, 0.3)
+  cv2.imwrite("heatmap.png", output)
