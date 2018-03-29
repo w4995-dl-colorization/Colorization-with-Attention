@@ -1,6 +1,8 @@
 ##### custom
 data/*
 models/*
+testdata/*
+
 imagenethttp.txt
 *.pyc
 *.jpg
