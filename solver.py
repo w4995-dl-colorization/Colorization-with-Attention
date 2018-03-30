@@ -3,6 +3,7 @@ import tensorflow as tf
 import os
 import time
 from net import Net
+from net_densenet import DenseNet
 from data import DataSet
 from datetime import datetime
 
@@ -23,16 +24,22 @@ class Solver(object):
             self.train_dir = str(solver_params['train_dir'])
             self.lr_decay = float(solver_params['lr_decay'])
             self.decay_steps = int(solver_params['decay_steps'])
+        self.common_params = common_params
+        self.net_params = net_params
+
         self.train = train
-        self.net = Net(train=train, common_params=common_params, net_params=net_params)
         self.dataset = DataSet(common_params=common_params, dataset_params=dataset_params)
 
     def construct_graph(self, scope):
         with tf.device(self.device):
+            self.training_flag = tf.placeholder(tf.bool)
             self.data_l = tf.placeholder(tf.float32, (self.batch_size, self.height, self.width, 1))
             self.gt_ab_313 = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4), 313))
             self.prior_color_weight_nongray = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4), 1))
-
+  
+            self.net = Net(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
+            #self.net = DenseNet(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
+  
             self.conv8_313 = self.net.inference(self.data_l)
             new_loss, g_loss = self.net.loss(scope, self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313)
             tf.summary.scalar('new_loss', new_loss)
@@ -91,7 +98,11 @@ class Solver(object):
                 t1 = time.time()
                 data_l, gt_ab_313, prior_color_weight_nongray = self.dataset.batch()
                 t2 = time.time()
-                _, loss_value = sess.run([train_op, self.total_loss], feed_dict={self.data_l:data_l, self.gt_ab_313:gt_ab_313, self.prior_color_weight_nongray:prior_color_weight_nongray})
+                _, loss_value = sess.run([train_op, self.total_loss],
+                                feed_dict={self.training_flag:self.train,
+                                           self.data_l:data_l,
+                                           self.gt_ab_313:gt_ab_313,
+                                           self.prior_color_weight_nongray:prior_color_weight_nongray})
                 duration = time.time() - start_time
                 t3 = time.time()
                 print('io: ' + str(t2 - t1) + '; compute: ' + str(t3 - t2))
@@ -110,7 +121,10 @@ class Solver(object):
 
                 # Record progress periodically.
                 if step % 20 == 0:
-                    summary_str = sess.run(summary_op, feed_dict={self.data_l:data_l, self.gt_ab_313:gt_ab_313, self.prior_color_weight_nongray:prior_color_weight_nongray})
+                    summary_str = sess.run(summary_op, feed_dict={self.training_flag:self.train,
+                                                                  self.data_l:data_l,
+                                                                  self.gt_ab_313:gt_ab_313,
+                                                                  self.prior_color_weight_nongray:prior_color_weight_nongray})
                     summary_writer.add_summary(summary_str, step)
 
                 # Save the model checkpoint periodically.
