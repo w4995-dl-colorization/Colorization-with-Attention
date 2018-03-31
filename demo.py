@@ -7,7 +7,7 @@ from skimage.io import imsave
 import cv2
 
 # Read image
-img = cv2.imread('data/Opencountry/n00015388_3984.JPEG')
+img = cv2.imread('data/Opencountry/nat190.jpg')
 
 # Convert image from rgb to gray
 if len(img.shape) == 3:
@@ -29,7 +29,7 @@ conv8_313 = autocolor.inference(data_l)
 # Load model and run the graph
 saver = tf.train.Saver()
 with tf.Session() as sess:
-    saver.restore(sess, 'models/model.ckpt-1740')
+    saver.restore(sess, 'models/model.ckpt')
     conv8_313 = sess.run(conv8_313, feed_dict={training_flag:False})
 
 # Colorize and save the image

@@ -12,7 +12,7 @@ class Net(object):
         if net_params:
             self.weight_decay = float(net_params['weight_decay'])
 
-    def inference(self, data_l, res_hm1, res_hm2):
+    def inference(self, data_l, res_hm1=None, res_hm2=None):
         """infer ab probability distribution of images from black-white images
 
         Args:
@@ -136,7 +136,7 @@ class Net(object):
 
         weight_loss = tf.add_n(tf.get_collection('losses'))
         ht_loss = tf.add_n(tf.get_collection('ht_losses'))
-        beta = 5000
+        beta = 0
 
         beta_ht_loss = beta*ht_loss
 
