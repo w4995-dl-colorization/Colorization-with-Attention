@@ -48,10 +48,11 @@ class Solver(object):
             #self.net = DenseNet(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
   
             self.conv8_313 = self.net.inference(self.data_l, self.res_hm1, self.res_hm2)
-            new_loss, g_loss = self.net.loss(self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313)
+            new_loss, g_loss, beta_ht_loss = self.net.loss(self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313)
             tf.summary.scalar('new_loss', new_loss)
             tf.summary.scalar('total_loss', g_loss)
-        return new_loss, g_loss
+            tf.summary.scalar('beta_ht_loss', beta_ht_loss)
+        return new_loss, g_loss, beta_ht_loss
 
 
     def construct_graph_for_heatmap(self):
@@ -78,7 +79,7 @@ class Solver(object):
 
             # Student
             # Construct graph
-            new_loss, self.total_loss = self.construct_graph()
+            new_loss, self.total_loss, self.beta_ht_loss = self.construct_graph()
 
             # Initialize and configure optimizer
             self.global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
@@ -158,7 +159,7 @@ class Solver(object):
                       self.res_hm1:res_hm1,
                       self.res_hm2:res_hm2}
 
-                _, loss_value = sess.run([train_op, self.total_loss], feed_dict=feed_d)
+                _, loss_value, beta_ht_loss = sess.run([train_op, self.total_loss, self.beta_ht_loss], feed_dict=feed_d)
 
 
                 duration = time.time() - start_time
@@ -171,9 +172,9 @@ class Solver(object):
                     examples_per_sec = num_examples_per_step / duration
                     sec_per_batch = duration / self.num_gpus
 
-                    format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
+                    format_str = ('%s: step %d, loss = %.2f beta_ht_loss = %.2f (%.1f examples/sec; %.3f '
                                   'sec/batch)')
-                    print (format_str % (datetime.now(), step, loss_value,
+                    print (format_str % (datetime.now(), step, loss_value, beta_ht_loss,
                                          examples_per_sec, sec_per_batch))
 
                 # Record progress periodically.

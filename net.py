@@ -134,21 +134,25 @@ class Net(object):
                   distribution of images
         """
 
-        flat_conv8_313 = tf.reshape(conv8_313, [-1, 313])
-        flat_gt_ab_313 = tf.reshape(gt_ab_313, [-1, 313])
-        g_loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels=flat_gt_ab_313, logits=flat_conv8_313)) / (self.batch_size)
-
-        dl2c = tf.gradients(g_loss, conv8_313)
-        dl2c = tf.stop_gradient(dl2c)
-
         weight_loss = tf.add_n(tf.get_collection('losses'))
         ht_loss = tf.add_n(tf.get_collection('ht_losses'))
         beta = 5000
 
+        beta_ht_loss = beta*ht_loss
+
+
+        flat_conv8_313 = tf.reshape(conv8_313, [-1, 313])
+        flat_gt_ab_313 = tf.reshape(gt_ab_313, [-1, 313])
+        g_loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels=flat_gt_ab_313, logits=flat_conv8_313)) / (self.batch_size)  + beta_ht_loss
+
+        dl2c = tf.gradients(g_loss, conv8_313)
+        dl2c = tf.stop_gradient(dl2c)
+
+
         tf.summary.scalar('weight_loss', weight_loss)
 
         # prior_color_weight_nongray (batch_size, height/4, width/4, 1)
-        beta_ht_loss = beta*ht_loss
+        
         new_loss = tf.reduce_sum(dl2c * conv8_313 * prior_color_weight_nongray) + weight_loss + beta_ht_loss
 
-        return new_loss, g_loss
+        return new_loss, g_loss, beta_ht_loss
