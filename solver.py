@@ -33,7 +33,8 @@ class Solver(object):
         self.train = train
         self.dataset = DataSet(common_params=common_params, dataset_params=dataset_params)
 
-    def construct_graph(self, scope):
+
+    def construct_graph(self):
         with tf.device(self.device):
             self.training_flag = tf.placeholder(tf.bool)
             self.res_hm1 = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4)))
@@ -47,10 +48,11 @@ class Solver(object):
             #self.net = DenseNet(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
   
             self.conv8_313 = self.net.inference(self.data_l, self.res_hm1, self.res_hm2)
-            new_loss, g_loss = self.net.loss(scope, self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313)
+            new_loss, g_loss = self.net.loss(self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313)
             tf.summary.scalar('new_loss', new_loss)
             tf.summary.scalar('total_loss', g_loss)
         return new_loss, g_loss
+
 
     def construct_graph_for_heatmap(self):
         with tf.device(self.device):
@@ -63,51 +65,59 @@ class Solver(object):
         return inputs, model, hm1, hm2
 
 
+    def process_attention(self, attention_hm, size1, size2):
+        res_hm = attention_hm.reshape(self.batch_size, size1, size1)
+        res_hm /= res_hm.sum(axis=1).sum(axis=1).reshape((self.batch_size,1,1))
+        res_hm = np.concatenate([cv2.resize(res_hm[i], (size2, size2), interpolation=cv2.INTER_AREA)[None, :, :] for i in range(self.batch_size)], axis=0)
+        return res_hm
+
 
     def train_model(self):
-
         
         with tf.device(self.device):
 
-            with tf.variable_scope('colorization') as sc:
-                # Initialize and configure optimizer
-                self.global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
-                learning_rate = tf.train.exponential_decay(self.learning_rate, self.global_step,
-                                                     self.decay_steps, self.lr_decay, staircase=True)
-                opt = tf.train.AdamOptimizer(learning_rate=learning_rate, beta2=0.99)
-                with tf.name_scope('gpu') as scope:
-                    new_loss, self.total_loss = self.construct_graph(scope)
-                    self.summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
+            # Student
+            # Construct graph
+            new_loss, self.total_loss = self.construct_graph()
 
-                # Compute gradient, moving average of weights and update weights
-                grads = opt.compute_gradients(new_loss)
-                apply_gradient_op = opt.apply_gradients(grads, global_step=self.global_step)
-                variable_averages = tf.train.ExponentialMovingAverage(
-                    0.999, self.global_step)
-                variables_averages_op = variable_averages.apply(tf.trainable_variables())
-                train_op = tf.group(apply_gradient_op, variables_averages_op)
-
-                # Record values into summary
-                self.summaries.append(tf.summary.scalar('learning_rate', learning_rate))
-                for grad, var in grads:
-                    if grad is not None:
-                        self.summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
-
-                for var in tf.trainable_variables():
-                    if var is not None:
-                        self.summaries.append(tf.summary.histogram(var.op.name, var))
-
-                summary_op = tf.summary.merge(self.summaries)
+            # Initialize and configure optimizer
+            self.global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
+            learning_rate = tf.train.exponential_decay(self.learning_rate, self.global_step,
+                                                 self.decay_steps, self.lr_decay, staircase=True)
+            opt = tf.train.AdamOptimizer(learning_rate=learning_rate, beta2=0.99)
 
 
-            # Initialize and configure sessions
+            # Compute gradient, moving average of weights and update weights            
+            grads = opt.compute_gradients(new_loss)
+            apply_gradient_op = opt.apply_gradients(grads, global_step=self.global_step)
+            variable_averages = tf.train.ExponentialMovingAverage(
+                0.999, self.global_step)
+            variables_averages_op = variable_averages.apply(tf.trainable_variables())
+            train_op = tf.group(apply_gradient_op, variables_averages_op)
+
+
+            # Record values into summary
+            self.summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope='colorization')
+            self.summaries.append(tf.summary.scalar('learning_rate', learning_rate))
+            for grad, var in grads:
+                if grad is not None:
+                    self.summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
+
+            for var in tf.trainable_variables():
+                if var is not None:
+                    self.summaries.append(tf.summary.histogram(var.op.name, var))
+
+            summary_op = tf.summary.merge(self.summaries)
+
+
+            # Initialize and configure student and teacher sessions
             config = tf.ConfigProto(allow_soft_placement=True)
             config.gpu_options.allow_growth = True
             sess = tf.Session(config=config)
             sess_teacher = tf.Session(config=config)
             
 
-            # Student
+            # Student: load/create model
             saver_student = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='colorization'))
             ckpt_student = tf.train.get_checkpoint_state('models/model.ckpt')
             if ckpt_student and tf.train.checkpoint_exists(ckpt_student.model_checkpoint_path):
@@ -115,48 +125,45 @@ class Solver(object):
             else:
                 sess.run(tf.global_variables_initializer())
             
-            # Teacher
+            # Teacher: load model
             inputs, model, hm1, hm2 = self.construct_graph_for_heatmap()
             saver_teacher = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='vgg_16'))
             saver_teacher.restore(sess_teacher, 'models/vgg16.ckpt')
  
 
-
+            # Student: Initialize summary writer
             summary_writer = tf.summary.FileWriter(self.train_dir, sess.graph)
 
             for step in range(self.max_steps):
-                # Get input data
                 start_time = time.time()
-                t1 = time.time()
+ 
+                # Get input data
                 images, data_l, gt_ab_313, prior_color_weight_nongray = self.dataset.batch()
 
-                # Teacher
-                res_pics = np.concatenate([cv2.resize(img, (224, 224), interpolation=cv2.INTER_AREA)[None, :, :, :] for img in images], axis=0)
+                # Teacher: Forward pass to grab/process heat map
+                res_pics = np.concatenate([cv2.resize(img, (224, 224),
+                                           interpolation=cv2.INTER_AREA)[None, :, :, :] for img in images], axis=0)
 
                 attention_hm1, attention_hm2 = sess_teacher.run((hm1, hm2), feed_dict={inputs: res_pics})
-                res_hm1 = attention_hm1.reshape(self.batch_size, 56, 56)
-                res_hm2 = attention_hm2.reshape(self.batch_size, 28, 28)
+                res_hm1 = self.process_attention(attention_hm1, 56, 64)
+                res_hm2 = self.process_attention(attention_hm2, 28, 32)
 
-     
-                res_hm1 /= res_hm1.sum(axis=1).sum(axis=1).reshape((self.batch_size,1,1))
-                res_hm1 = np.concatenate([cv2.resize(res_hm1[i], (64, 64), interpolation=cv2.INTER_AREA)[None, :, :] for i in range(self.batch_size)], axis=0)
 
-                res_hm2 /= res_hm2.sum(axis=1).sum(axis=1).reshape((self.batch_size,1,1))
-                res_hm2 = np.concatenate([cv2.resize(res_hm2[i], (32, 32), interpolation=cv2.INTER_AREA)[None, :, :] for i in range(self.batch_size)], axis=0)
+                # Student: Optimize objective for colorization
 
-                # Student
-                t2 = time.time()
-                _, loss_value = sess.run([train_op, self.total_loss],
-                                feed_dict={self.training_flag:self.train,
-                                           self.data_l:data_l,
-                                           self.gt_ab_313:gt_ab_313,
-                                           self.prior_color_weight_nongray:prior_color_weight_nongray,
-                                           self.res_hm1:res_hm1,
-                                           self.res_hm2:res_hm2})
+                feed_d={self.training_flag:self.train,
+                      self.data_l:data_l,
+                      self.gt_ab_313:gt_ab_313,
+                      self.prior_color_weight_nongray:prior_color_weight_nongray,
+                      self.res_hm1:res_hm1,
+                      self.res_hm2:res_hm2}
+
+                _, loss_value = sess.run([train_op, self.total_loss], feed_dict=feed_d)
+
+
                 duration = time.time() - start_time
-                t3 = time.time()
-                print('io: ' + str(t2 - t1) + '; compute: ' + str(t3 - t2))
                 assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
+
 
                 # Print training info periodically.
                 if step % 1 == 0:
@@ -171,12 +178,7 @@ class Solver(object):
 
                 # Record progress periodically.
                 if step % 20 == 0:
-                    summary_str = sess.run(summary_op, feed_dict={self.training_flag:self.train,
-                                                                  self.data_l:data_l,
-                                                                  self.gt_ab_313:gt_ab_313,
-                                                                  self.prior_color_weight_nongray:prior_color_weight_nongray,
-                                                                  self.res_hm1:res_hm1,
-                                                                  self.res_hm2:res_hm2})
+                    summary_str = sess.run(summary_op, feed_dict=feed_d)
                     summary_writer.add_summary(summary_str, step)
 
                 # Save the model checkpoint periodically.
