@@ -202,6 +202,7 @@ def vgg_16(inputs,
       att1 = net # attention out, high
       heatmap1 = tf.reduce_sum(tf.square(att1), 3)
       print(heatmap1)
+
       #later run sess.run(heatmap1)
       net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
       net = slim.max_pool2d(net, [2, 2], scope='pool3')
@@ -209,6 +210,7 @@ def vgg_16(inputs,
       att2 = net # attention out, high
       heatmap2 = tf.reduce_sum(tf.square(att2), 3)
       print(heatmap2)
+
       net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
       net = slim.max_pool2d(net, [2, 2], scope='pool4')
       net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv5')

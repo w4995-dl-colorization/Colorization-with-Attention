@@ -12,12 +12,13 @@ class Net(object):
         if net_params:
             self.weight_decay = float(net_params['weight_decay'])
 
-    def inference(self, data_l):
+    def inference(self, data_l, res_hm1, res_hm2):
         """infer ab probability distribution of images from black-white images
 
         Args:
           data_l: 4-D tensor [batch_size, height, width, 1],
                   images with only L channel
+          res_hm: [batch_size, height/4, width/4], heat map
         Return:
           conv8_313: 4-D tensor [batch_size, height/4, width/4, 313],
                      predicted ab probability distribution of images
@@ -38,6 +39,11 @@ class Net(object):
         conv_num += 1
         temp_conv = batch_norm('bn_2', temp_conv, train=self.train)
 
+        # Heat Map Loss
+        ht_loss = tf.nn.l2_loss(tf.reduce_sum(temp_conv, axis=3)-res_hm1)
+        tf.add_to_collection('ht_losses', ht_loss)
+
+        
         # conv3 64->32
         temp_conv = conv2d('conv' + str(conv_num), temp_conv, [3, 3, 128, 256], stride=1, wd=self.weight_decay)
         conv_num += 1
@@ -55,6 +61,11 @@ class Net(object):
         temp_conv = conv2d('conv' + str(conv_num), temp_conv, [3, 3, 512, 512], stride=1, wd=self.weight_decay)
         conv_num += 1
         temp_conv = batch_norm('bn_4', temp_conv, train=self.train)
+
+        # Heat Map Loss
+        ht_loss = tf.nn.l2_loss(tf.reduce_sum(temp_conv, axis=3)-res_hm2)
+        tf.add_to_collection('ht_losses', ht_loss)
+
 
         # conv5 dilated 32->32
         temp_conv = conv2d('conv' + str(conv_num), temp_conv, [3, 3, 512, 512], stride=1, dilation=2, wd=self.weight_decay)
@@ -123,9 +134,13 @@ class Net(object):
         dl2c = tf.stop_gradient(dl2c)
 
         weight_loss = tf.add_n(tf.get_collection('losses', scope=scope))
+        ht_loss = tf.add_n(tf.get_collection('ht_losses', scope=scope))
+        beta = 3000
+
         tf.summary.scalar('weight_loss', weight_loss)
 
         # prior_color_weight_nongray (batch_size, height/4, width/4, 1)
-        new_loss = tf.reduce_sum(dl2c * conv8_313 * prior_color_weight_nongray) + weight_loss
+        print(beta*ht_loss)
+        new_loss = tf.reduce_sum(dl2c * conv8_313 * prior_color_weight_nongray) + weight_loss + beta*ht_loss
 
         return new_loss, g_loss

@@ -80,11 +80,11 @@ class DataSet(object):
                 assert len(image.shape)==3 and image.shape[2]==3
                 images.append(image)
             images = self.image_process(images)
-            images = np.asarray(images, dtype=np.uint8)
 
             # Put (data_l, gt_ab_313, prior_color_weight_nongray)
             # into the batch_queue. For details, see utils.py/preprocess
-            self.batch_queue.put(preprocess(images))
+            data_l, gt_ab_313, prior_color_weight_nongray = preprocess(np.asarray(images, dtype=np.uint8))
+            self.batch_queue.put((images, data_l, gt_ab_313, prior_color_weight_nongray))
 
     def image_process(self, batch):
         """ Randomly flip/crop the image
