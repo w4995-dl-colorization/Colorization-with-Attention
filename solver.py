@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import os
 import time
-from net import Net
+from net_att import Net
 from net_densenet import DenseNet
 from data import DataSet
 from datetime import datetime
