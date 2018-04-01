@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import slim_vgg
 
+import cropnresize
+
 inputs = tf.placeholder(tf.float32, shape=(None, 224, 224, 3))
 model, end_points = slim_vgg.vgg_16(inputs)
 hm1 = end_points['hm1'] #heatmap tensor
@@ -14,17 +16,29 @@ saver = tf.train.Saver()
 #demo input pic
 pic = cv2.imread("color_.jpg")
 
+#tf global session
+sess = tf.Session()
+
+
+
 ### FEATURE add read collection
+#use that from cropnresize
 
 ### Create abstraction for all 3 attention maps
-
+def heatmap(input_dim=(None, None), output_dim=(None, None)):
+    resize_pics
 ### concatenate
 
 ### print out heatmaps visualization of a collection to a folder to mass test
 
 
+
+
+#pics_224 = 
+
+
 ## Original code
-res_pic = cv2.resize(pic,(224, 224), interpolation=cv2.INTER_AREA)
+pics = cv2.resize(pic,(224, 224), interpolation=cv2.INTER_AREA)
 with tf.Session() as sess:
   saver.restore(sess, "models/vgg16.ckpt")
   attention_hm = sess.run(hm1, feed_dict={inputs: [res_pic]})

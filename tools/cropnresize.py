@@ -10,8 +10,8 @@ import numpy as np
 # path of dataset
 path = os.path.join(os.getcwd(), 'data', 'imagenet_animal')
 
-def resize(img):
-    return cv2.resize(img, (256, 256), interpolation=cv2.INTER_AREA)
+def resize(img, sz=(256, 256)):
+    return cv2.resize(img, sz) #, interpolation=cv2.INTER_AREA
 
 def apply(imgs):
     p = Pool(6)
