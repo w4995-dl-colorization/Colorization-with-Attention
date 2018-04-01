@@ -198,25 +198,27 @@ def vgg_16(inputs,
       net = slim.max_pool2d(net, [2, 2], scope='pool1')
       net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
       net = slim.max_pool2d(net, [2, 2], scope='pool2')
-      print("Attention 1", net) #add by James for debugging
+      # print("Attention 1", net) #add by James for debugging
       att1 = net # attention out, high
       heatmap1 = tf.reduce_sum(tf.square(att1), 3)
-      print(heatmap1)
+
+
       #later run sess.run(heatmap1)
       net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
       net = slim.max_pool2d(net, [2, 2], scope='pool3')
-      print("Attention 2", net) #add by James for debugging
+      # print("Attention 2", net) #add by James for debugging
       att2 = net # attention out, high
       heatmap2 = tf.reduce_sum(tf.square(att2), 3)
-      print(heatmap2)
+
+
       net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
       net = slim.max_pool2d(net, [2, 2], scope='pool4')
       net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
       net = slim.max_pool2d(net, [2, 2], scope='pool5')
-      print("Attention 3", net) #add by James for debugging
+      # print("Attention 3", net) #add by James for debugging
       att3 = net # attention out, high
       heatmap3 = tf.reduce_sum(tf.square(att3), 3)
-      print(heatmap3)
+
 
       # Use conv2d instead of fully_connected layers.
       net = slim.conv2d(net, 4096, [7, 7], padding=fc_conv_padding, scope='fc6')
