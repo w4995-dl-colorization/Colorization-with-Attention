@@ -34,4 +34,4 @@ with tf.Session() as sess:
   gray_rgb_pic = cv2.cvtColor(gray_pic, cv2.COLOR_GRAY2RGB)
   print(jet_hm.shape, gray_rgb_pic.shape)
   output = cv2.addWeighted(gray_rgb_pic, 0.3, jet_hm, 0.7, 0)
-  cv2.imwrite("heatmap.png", output)
+  cv2.imwrite("heatmap.png", jet_hm)
