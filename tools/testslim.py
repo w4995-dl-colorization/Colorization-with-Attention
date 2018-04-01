@@ -26,7 +26,7 @@ sess = tf.Session()
 
 ### Create abstraction for all 3 attention maps
 def heatmap(input_dim=(None, None), output_dim=(None, None)):
-    resize_pics
+    pass
 ### concatenate
 
 ### print out heatmaps visualization of a collection to a folder to mass test
@@ -34,8 +34,13 @@ def heatmap(input_dim=(None, None), output_dim=(None, None)):
 
 
 
-#pics_224 = 
 
+pnames, imgs = cropnresize.readin()
+
+imgs_224 = tf.image.resize_images(imgs, (224, 224, 3))
+print(imgs_224)
+#pics_224 = 
+quit()
 
 ## Original code
 pics = cv2.resize(pic,(224, 224), interpolation=cv2.INTER_AREA)
@@ -47,7 +52,7 @@ with tf.Session() as sess:
   # normalize result heatmap
   res_hm /= np.sum(res_hm)
 
-  np.set_printoptions(threshold=np.nan)
+  #np.set_printoptions(threshold=np.nan)
   norm_hm = cv2.normalize(src=res_hm, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
   norm_hm = 255 - norm_hm
   resized_norm_hm = cv2.resize(norm_hm, (256, 256)) # interpolation=cv2.INTER_AREA
