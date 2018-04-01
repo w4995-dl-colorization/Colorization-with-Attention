@@ -20,7 +20,6 @@ data_l = img.astype(dtype=np.float32) / 255.0 * 100 - 50
 
 # Construct graph
 training_flag = tf.placeholder(tf.bool)
-
 autocolor = Net(train=training_flag)
 # autocolor = DenseNet(train=training_flag)
 

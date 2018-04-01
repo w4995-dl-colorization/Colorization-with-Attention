@@ -34,7 +34,7 @@ class Solver(object):
         self.dataset = DataSet(common_params=common_params, dataset_params=dataset_params)
 
 
-    def construct_graph(self):
+    def construct_graph_for_student(self):
         with tf.device(self.device):
             self.training_flag = tf.placeholder(tf.bool)
             self.res_hm1 = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4)))
@@ -48,27 +48,35 @@ class Solver(object):
             #self.net = DenseNet(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
   
             self.conv8_313 = self.net.inference(self.data_l, self.res_hm1, self.res_hm2)
-            new_loss, g_loss, beta_ht_loss = self.net.loss(self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313)
+            new_loss, g_loss, ht_loss = self.net.loss(self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313, self.res_hm1)
             tf.summary.scalar('new_loss', new_loss)
             tf.summary.scalar('total_loss', g_loss)
-            tf.summary.scalar('beta_ht_loss', beta_ht_loss)
-        return new_loss, g_loss, beta_ht_loss
+            tf.summary.scalar('ht_loss', ht_loss)
+        return new_loss, g_loss, ht_loss
 
 
-    def construct_graph_for_heatmap(self):
+    def construct_graph_for_teacher(self):
         with tf.device(self.device):
             inputs = tf.placeholder(tf.float32, shape=(None, 224, 224, 3))
-            model, end_points = slim_vgg.vgg_16(inputs)
+            _, end_points = slim_vgg.vgg_16(inputs)
             # heatmap tensors
             hm1 = end_points['hm1'] 
             hm2 = end_points['hm2']
             hm3 = end_points['hm3']
-        return inputs, model, hm1, hm2
+        return inputs, hm1, hm2
 
-
+    # Normalize attention heat map
     def process_attention(self, attention_hm, size1, size2):
-        res_hm = attention_hm.reshape(self.batch_size, size1, size1)
-        res_hm /= res_hm.sum(axis=1).sum(axis=1).reshape((self.batch_size,1,1))
+        eps = 1e-5
+        res_hm = attention_hm.reshape(self.batch_size, size1**2)
+        # center heat map
+        centered_res_hm = res_hm - res_hm.mean(axis=1).reshape((self.batch_size,1))
+        # divide by stdev
+        denom_res_hm = np.sqrt((centered_res_hm**2).sum(axis=1)/(size1*size1) + eps).reshape((self.batch_size,1))
+        res_hm = centered_res_hm / denom_res_hm
+        # reshape
+        res_hm = res_hm.reshape((self.batch_size, size1, size1))
+        # resize from 56 x 56 to 64 x 64
         res_hm = np.concatenate([cv2.resize(res_hm[i], (size2, size2), interpolation=cv2.INTER_AREA)[None, :, :] for i in range(self.batch_size)], axis=0)
         return res_hm
 
@@ -79,7 +87,7 @@ class Solver(object):
 
             # Student
             # Construct graph
-            new_loss, self.total_loss, self.beta_ht_loss = self.construct_graph()
+            new_loss, self.total_loss, self.ht_loss = self.construct_graph_for_student()
 
             # Initialize and configure optimizer
             self.global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
@@ -127,7 +135,7 @@ class Solver(object):
                 sess.run(tf.global_variables_initializer())
             
             # Teacher: load model
-            inputs, model, hm1, hm2 = self.construct_graph_for_heatmap()
+            inputs, hm1, hm2 = self.construct_graph_for_teacher()
             saver_teacher = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='vgg_16'))
             saver_teacher.restore(sess_teacher, 'models/vgg16.ckpt')
  
@@ -159,7 +167,7 @@ class Solver(object):
                       self.res_hm1:res_hm1,
                       self.res_hm2:res_hm2}
 
-                _, loss_value, beta_ht_loss = sess.run([train_op, self.total_loss, self.beta_ht_loss], feed_dict=feed_d)
+                _, loss_value, ht_loss = sess.run([train_op, self.total_loss, self.ht_loss], feed_dict=feed_d)
 
 
                 duration = time.time() - start_time
@@ -172,9 +180,9 @@ class Solver(object):
                     examples_per_sec = num_examples_per_step / duration
                     sec_per_batch = duration / self.num_gpus
 
-                    format_str = ('%s: step %d, loss = %.2f beta_ht_loss = %.2f (%.1f examples/sec; %.3f '
+                    format_str = ('%s: step %d, loss = %.2f ht_loss = %.2f (%.1f examples/sec; %.3f '
                                   'sec/batch)')
-                    print (format_str % (datetime.now(), step, loss_value, beta_ht_loss,
+                    print (format_str % (datetime.now(), step, loss_value, ht_loss,
                                          examples_per_sec, sec_per_batch))
 
                 # Record progress periodically.
