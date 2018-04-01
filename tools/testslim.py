@@ -14,6 +14,16 @@ saver = tf.train.Saver()
 #demo input pic
 pic = cv2.imread("color_.jpg")
 
+### FEATURE add read collection
+
+### Create abstraction for all 3 attention maps
+
+### concatenate
+
+### print out heatmaps visualization of a collection to a folder to mass test
+
+
+## Original code
 res_pic = cv2.resize(pic,(224, 224), interpolation=cv2.INTER_AREA)
 with tf.Session() as sess:
   saver.restore(sess, "models/vgg16.ckpt")
