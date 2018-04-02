@@ -2,7 +2,8 @@ import numpy as np
 import tensorflow as tf
 import os
 import time
-from net_att import Net
+from net import Net
+from net_att import Net_att
 from net_densenet import DenseNet
 from data import DataSet
 from datetime import datetime
@@ -45,7 +46,8 @@ class Solver(object):
             self.prior_color_weight_nongray = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4), 1))
   
             self.net = Net(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
-            #self.net = DenseNet(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
+            # self.net = Net_att(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
+            # self.net = DenseNet(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
   
             self.conv8_313 = self.net.inference(self.data_l, self.res_hm1, self.res_hm2)
             new_loss, g_loss, ht_loss = self.net.loss(self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313, self.res_hm1)

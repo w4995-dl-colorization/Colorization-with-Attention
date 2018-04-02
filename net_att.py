@@ -3,7 +3,7 @@ from ops import conv2d, deconv2d, batch_norm
 slim = tf.contrib.slim
 
 
-class Net(object):
+class Net_att(object):
 
     def __init__(self, train=True, common_params=None, net_params=None):
         self.train = train
