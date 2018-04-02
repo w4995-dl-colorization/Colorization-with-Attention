@@ -193,8 +193,8 @@ def _nnencode(data_ab_ss):
 # ***************************
 # ***** SUPPORT CLASSES *****
 # ***************************
-class PriorFactor():
-    ''' Class handles prior factor '''
+class ClassRebalance():
+    ''' Class rebalancing for giving more weights to rare colors '''
     def __init__(self, alpha=1, gamma=0.5, verbose=False, priorFile=''):
         # INPUTS
         #   alpha           integer     prior correction factor, 0 to ignore prior, 1 to divide by prior, alpha to divide by prior**alpha
@@ -267,7 +267,7 @@ def _prior_boost(gt_ab_313):
     gamma = 0.5
     alpha = 1.0
 
-    pc = PriorFactor(alpha, gamma, priorFile=os.path.join(enc_dir, 'prior_probs.npy'))
+    pc = ClassRebalance(alpha, gamma, priorFile=os.path.join(enc_dir, 'prior_probs.npy'))
 
     # gt_ab_313 (N, 313, H, W)
     gt_ab_313 = np.transpose(gt_ab_313, (0, 3, 1, 2))
