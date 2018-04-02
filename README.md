@@ -33,19 +33,15 @@ GPU:
 python3 tools/train.py -c conf/train_gpu.cfg
 ```
 
-### Test demo
+5. Test
 
-1. Download pretrained model(<a>https://drive.google.com/file/d/0B-yiAeTLLamRWVVDQ1VmZ3BxWG8/view?usp=sharing</a>)
+    ```
+    python3 demo.py
+    ```
 
-	```
-	mv color_model.ckpt models/model.ckpt
-	```
-2. Test
-
-	```
-	python3 demo.py
-	```
 
 ### Acknowledgement
 The code in this repo is built on top of the work at:
 https://github.com/nilboy/colorization-tf
+
+https://github.com/tensorflow/models/blob/master/research/slim/nets/vgg.py
