@@ -51,6 +51,10 @@ https://github.com/tensorflow/models/blob/master/research/slim/nets/vgg.py
 
 ├── data            (dataset)
 
+├── evaluation
+
+│   ├── evaluate_loss.py (evaluate colorization quantitatively)
+
 ├── data.py         (handling data processing for colorization)
 
 ├── demo.py         (demo for testing correctness)
