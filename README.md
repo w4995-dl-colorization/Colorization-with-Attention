@@ -48,24 +48,45 @@ https://github.com/tensorflow/models/blob/master/research/slim/nets/vgg.py
 
 ### Tree Structure
 ├── conf            (configure files)
+
 ├── data            (dataset)
+
 ├── data.py         (handling data processing for colorization)
+
 ├── demo.py         (demo for testing correctness)
+
 ├── models          (store trained models)
+
 ├── net.py          (no_attention/weighted-loss attention model)
+
 ├── net_att.py      (end-to-end attention model)
+
 ├── net_densenet.py (densenet no_attention model to be fixed)
+
 ├── ops.py          (customized tf layers)
+
 ├── resources       
+
 │   ├── prior_probs.npy (empiricial probability used for class rebalancing extracted from imagenet)
+
 │   └── pts_in_hull.npy (values of each bin on ab color space)
+
 ├── slim_vgg.py         (teacher CNN vgg-net for classification)
+
 ├── solver.py           (graph and session for training)
+
 ├── testslim.py
+
 ├── tools
+
 │   ├── create_imagenet_list.py (create training list for colorization)
+
 │   ├── create_prior_probs.py   (create empiricial probability used for class rebalancing from current dataset)
+
 │   ├── cropnresize.py          (preprocess images for attention)
+
 │   ├── testslim.py             (test attention extraction)
+
 │   └── train.py                (wrapper for training)
+
 └── utils.py                    (helper functions)
