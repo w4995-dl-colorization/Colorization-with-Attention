@@ -46,17 +46,17 @@ all_data_l = np.vstack(img_list)
 
 # Construct graph
 training_flag = tf.placeholder(tf.bool)
-autocolor = Net(train=training_flag)
+autocolor = Net_att(train=training_flag)
 # autocolor = Net_att(train=training_flag)
 # autocolor = DenseNet(train=training_flag)
-data_l = tf.placeholder(tf.float32, (None, height, width, 1))
+data_l = tf.placeholder(tf.float32, (batch_size, height, width, 1))
 conv8_313 = autocolor.inference(data_l)
 
 # Load model and run the graph
 saver = tf.train.Saver()
 
 with tf.Session() as sess:
-    saver.restore(sess, 'models/att/model.ckpt')
+    saver.restore(sess, 'models/end_to_end/model.ckpt')
 
     for start_ind in range(0, img_num, batch_size):
         end_ind = start_ind + batch_size
@@ -69,5 +69,5 @@ with tf.Session() as sess:
         for i in range(batch_size):
             # Colorize and save the image
             img_rgb = decode(batch_data_l[i][None,:,:,:], conv8_313[i][None,:,:,:], 0.38)
-            imsave('results/color_weight_att_'+img_names[start_ind+i], img_rgb)
+            imsave('results/color_end_to_end_att_'+img_names[start_ind+i], img_rgb)
 
