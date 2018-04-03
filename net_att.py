@@ -1,3 +1,9 @@
+'''
+This is the same as the model in the Standford Student Project Report except
+the last block and the cost function have been modified.
+We call this End-to-End Attention Model
+'''
+
 import tensorflow as tf
 from ops import conv2d, deconv2d, batch_norm
 slim = tf.contrib.slim
@@ -15,13 +21,13 @@ class Net_att(object):
         self.res_hm1 = None
 
 
-    def inference(self, data_l, res_hm1=None, res_hm2=None):
+    def inference(self, data_l):
         """infer ab probability distribution of images from black-white images
 
         Args:
           data_l: 4-D tensor [batch_size, height, width, 1],
                   images with only L channel
-          res_hm: [batch_size, height/4, width/4], heat map
+
         Return:
           conv8_313: 4-D tensor [batch_size, height/4, width/4, 313],
                      predicted ab probability distribution of images
@@ -119,7 +125,7 @@ class Net_att(object):
             conv8_313 = temp_conv
         return conv8_313
 
-    def loss(self, conv8_313, prior_color_weight_nongray, gt_ab_313, res_hm1):
+    def loss(self, conv8_313, prior_color_weight_nongray, gt_ab_313, res_hm1, use_attention_in_cost=False):
         """loss
 
         Args:
@@ -136,11 +142,9 @@ class Net_att(object):
           new_loss: L_cl(Z_predicted, Z) as in the paper
           g_loss: cross_entropy between predicted and real ab probability
                   distribution of images
-          ht_loss: scalar, the loss caused by heat map.
         """
-        # Get the two losses and record them into summary
+        # Get the weight loss and record it into summary
         weight_loss = tf.add_n(tf.get_collection('losses'))
-
         tf.summary.scalar('weight_loss', weight_loss)
 
 
@@ -153,8 +157,18 @@ class Net_att(object):
         dl2c = tf.stop_gradient(dl2c)
 
 
-        # prior_color_weight_nongray (batch_size, height/4, width/4, 1)
-        new_loss = tf.reduce_sum(dl2c * conv8_313 * prior_color_weight_nongray) + weight_loss
-        ht_loss = tf.constant(0.0)
+        # Create a weighted mask from heatmap and use it to weight loss at each pixel
+        size1 = res_hm1.shape[1]
+        res_hm1 = tf.reshape(res_hm1, (-1, size1*size1))
+        res_hm1 = tf.nn.softmax(res_hm1, axis=1)
+        res_hm1_mask = tf.reshape(res_hm1, (1,-1,size1,size1,1))
 
-        return new_loss, g_loss, ht_loss
+        # prior_color_weight_nongray (batch_size, height/4, width/4, 1)
+        self.use_attention_in_cost = True
+        cross_entropy_tensor = dl2c * conv8_313 * prior_color_weight_nongray
+        if use_attention_in_cost:
+            cross_entropy_tensor *= res_hm1_mask
+
+        new_loss = tf.reduce_sum(cross_entropy_tensor) + weight_loss
+
+        return new_loss, g_loss
