@@ -8,6 +8,8 @@ from skimage.io import imsave
 import random
 import cv2
 
+from evaluation.evaluate_loss import L2_lab, PSNR_rgb, saturation_hsv
+
 # Read into images
 folder_path = 'data/Opencountry/'
 # Select the image names
@@ -28,8 +30,14 @@ width = 256
 
 img_list = []
 
+## img collection
+img_col = {}
+
 for img_name in img_names:
     img = cv2.imread(folder_path+img_name)
+
+    #save ref
+    img_col[img_name] = img
 
     # Convert image from rgb to gray
     if len(img.shape) == 3:
@@ -56,7 +64,7 @@ conv8_313 = autocolor.inference(data_l)
 saver = tf.train.Saver()
 
 with tf.Session() as sess:
-    saver.restore(sess, 'models/end_to_end/model.ckpt')
+    saver.restore(sess, 'models/model.ckpt')
 
     for start_ind in range(0, img_num, batch_size):
         end_ind = start_ind + batch_size
@@ -69,5 +77,15 @@ with tf.Session() as sess:
         for i in range(batch_size):
             # Colorize and save the image
             img_rgb = decode(batch_data_l[i][None,:,:,:], conv8_313[i][None,:,:,:], 0.38)
+
+
+            ### James addon for discussion of metrics evaluation
+            pred_rgb = img_rgb
+            gtruth_rgb = img_col[img_names[start_ind+i]]
+
+            print(L2_lab(pred_rgb, gtruth_rgb))
+            print(PSNR_rgb(pred_rgb,gtruth_rgb))
+            print(saturation_hsv(pred_rgb,gtruth_rgb))
+
             imsave('results/color_end_to_end_att_'+img_names[start_ind+i], img_rgb)
 

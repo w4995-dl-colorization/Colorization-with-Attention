@@ -83,10 +83,10 @@ def get_images(folder):
     return images
 
 
-pred_rgb = get_images(sys.argv[1])
-gtruth_rgb = get_images(sys.argv[2])
-print(L2_lab(pred_rgb, gtruth_rgb))
-print(PSNR_rgb(pred_rgb,gtruth_rgb))
-print(saturation_hsv(pred_rgb,gtruth_rgb))
+#pred_rgb = get_images(sys.argv[1])
+#gtruth_rgb = get_images(sys.argv[2])
+#print(L2_lab(pred_rgb, gtruth_rgb))
+#print(PSNR_rgb(pred_rgb,gtruth_rgb))
+#print(saturation_hsv(pred_rgb,gtruth_rgb))
 
 
