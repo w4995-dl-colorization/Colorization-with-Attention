@@ -3,6 +3,7 @@ import tensorflow as tf
 import os
 import time
 from net import Net
+from net_att import Net_att
 from net_densenet import DenseNet
 from data import DataSet
 from datetime import datetime
@@ -30,6 +31,12 @@ class Solver(object):
         self.common_params = common_params
         self.net_params = net_params
 
+        # end_to_end: if use end_to_end attention model or Richard Zhang's model
+        self.end_to_end = True
+
+        # use_attention_in_cost: if use attention to weight loss in the cost function
+        self.use_attention_in_cost = True
+
         self.train = train
         self.dataset = DataSet(common_params=common_params, dataset_params=dataset_params)
 
@@ -38,21 +45,27 @@ class Solver(object):
         with tf.device(self.device):
             self.training_flag = tf.placeholder(tf.bool)
             self.res_hm1 = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4)))
+
+            # This extracted heatmap is not currently used 
             self.res_hm2 = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 8), int(self.width / 8)))
 
             self.data_l = tf.placeholder(tf.float32, (self.batch_size, self.height, self.width, 1))
             self.gt_ab_313 = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4), 313))
             self.prior_color_weight_nongray = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4), 1))
   
-            self.net = Net(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
-            #self.net = DenseNet(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
+            if self.end_to_end == True:
+                self.net = Net_att(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
+            else:
+                self.net = Net(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
+            
+            # self.net = DenseNet(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
   
-            self.conv8_313 = self.net.inference(self.data_l, self.res_hm1, self.res_hm2)
-            new_loss, g_loss, ht_loss = self.net.loss(self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313, self.res_hm1)
+            self.conv8_313 = self.net.inference(self.data_l)
+            new_loss, g_loss = self.net.loss(self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313, self.res_hm1, self.use_attention_in_cost)
             tf.summary.scalar('new_loss', new_loss)
             tf.summary.scalar('total_loss', g_loss)
-            tf.summary.scalar('ht_loss', ht_loss)
-        return new_loss, g_loss, ht_loss
+
+        return new_loss, g_loss
 
 
     def construct_graph_for_teacher(self):
@@ -87,7 +100,7 @@ class Solver(object):
 
             # Student
             # Construct graph
-            new_loss, self.total_loss, self.ht_loss = self.construct_graph_for_student()
+            new_loss, self.total_loss = self.construct_graph_for_student()
 
             # Initialize and configure optimizer
             self.global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
@@ -149,13 +162,20 @@ class Solver(object):
                 # Get input data
                 images, data_l, gt_ab_313, prior_color_weight_nongray = self.dataset.batch()
 
-                # Teacher: Forward pass to grab/process heat map
-                res_pics = np.concatenate([cv2.resize(img, (224, 224),
-                                           interpolation=cv2.INTER_AREA)[None, :, :, :] for img in images], axis=0)
 
-                attention_hm1, attention_hm2 = sess_teacher.run((hm1, hm2), feed_dict={inputs: res_pics})
-                res_hm1 = self.process_attention(attention_hm1, 56, 64)
-                res_hm2 = self.process_attention(attention_hm2, 28, 32)
+                res_hm1 = np.zeros((self.batch_size, 64, 64))
+                res_hm2 = np.zeros((self.batch_size, 32, 32))
+
+                # Extract attention when the end-to-end structure is not used
+                if self.use_attention_in_cost:
+                    # Teacher: Forward pass to grab/process heat map
+                    res_pics = np.concatenate([cv2.resize(img, (224, 224),
+                                               interpolation=cv2.INTER_AREA)[None, :, :, :] for img in images], axis=0)
+
+                    attention_hm1, attention_hm2 = sess_teacher.run((hm1, hm2), feed_dict={inputs: res_pics})
+                    res_hm1 = self.process_attention(attention_hm1, 56, 64)
+                    res_hm2 = self.process_attention(attention_hm2, 28, 32)
+
 
 
                 # Student: Optimize objective for colorization
@@ -167,7 +187,7 @@ class Solver(object):
                       self.res_hm1:res_hm1,
                       self.res_hm2:res_hm2}
 
-                _, loss_value, ht_loss = sess.run([train_op, self.total_loss, self.ht_loss], feed_dict=feed_d)
+                _, loss_value = sess.run([train_op, self.total_loss], feed_dict=feed_d)
 
 
                 duration = time.time() - start_time
@@ -180,9 +200,9 @@ class Solver(object):
                     examples_per_sec = num_examples_per_step / duration
                     sec_per_batch = duration / self.num_gpus
 
-                    format_str = ('%s: step %d, loss = %.2f ht_loss = %.2f (%.1f examples/sec; %.3f '
+                    format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
                                   'sec/batch)')
-                    print (format_str % (datetime.now(), step, loss_value, ht_loss,
+                    print (format_str % (datetime.now(), step, loss_value,
                                          examples_per_sec, sec_per_batch))
 
                 # Record progress periodically.

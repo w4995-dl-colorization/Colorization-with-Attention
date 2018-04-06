@@ -33,19 +33,64 @@ GPU:
 python3 tools/train.py -c conf/train_gpu.cfg
 ```
 
-### Test demo
+5. Test
 
-1. Download pretrained model(<a>https://drive.google.com/file/d/0B-yiAeTLLamRWVVDQ1VmZ3BxWG8/view?usp=sharing</a>)
+    ```
+    python3 demo.py
+    ```
 
-	```
-	mv color_model.ckpt models/model.ckpt
-	```
-2. Test
-
-	```
-	python3 demo.py
-	```
 
 ### Acknowledgement
 The code in this repo is built on top of the work at:
 https://github.com/nilboy/colorization-tf
+
+https://github.com/tensorflow/models/blob/master/research/slim/nets/vgg.py
+
+### Tree Structure
+├── conf            (configure files)
+
+├── data            (dataset)
+
+├── evaluation
+
+│   ├── evaluate_loss.py (evaluate colorization quantitatively)
+
+├── data.py         (handling data processing for colorization)
+
+├── demo.py         (demo for testing correctness)
+
+├── models          (store trained models)
+
+├── net.py          (no_attention/weighted-loss attention model)
+
+├── net_att.py      (end-to-end attention model)
+
+├── net_densenet.py (densenet no_attention model to be fixed)
+
+├── ops.py          (customized tf layers)
+
+├── resources       
+
+│   ├── prior_probs.npy (empiricial probability used for class rebalancing extracted from imagenet)
+
+│   └── pts_in_hull.npy (values of each bin on ab color space)
+
+├── slim_vgg.py         (teacher CNN vgg-net for classification)
+
+├── solver.py           (graph and session for training)
+
+├── testslim.py
+
+├── tools
+
+│   ├── create_imagenet_list.py (create training list for colorization)
+
+│   ├── create_prior_probs.py   (create empiricial probability used for class rebalancing from current dataset)
+
+│   ├── cropnresize.py          (preprocess images for attention)
+
+│   ├── testslim.py             (test attention extraction)
+
+│   └── train.py                (wrapper for training)
+
+└── utils.py                    (helper functions)

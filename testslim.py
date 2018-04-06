@@ -14,7 +14,7 @@ hm3 = end_points['hm3']
 saver = tf.train.Saver()
 
 #demo input pic
-pic = cv2.imread("color_.jpg")
+pic = cv2.imread("data/Opencountry/nat190.jpg")
 
 #tf global session
 sess = tf.Session()
@@ -44,6 +44,7 @@ pnames, imgs = cropnresize.readin()
 
 ## Original code
 pics = cv2.resize(pic,(224, 224), interpolation=cv2.INTER_AREA)
+
 with tf.Session() as sess:
   saver.restore(sess, "models/vgg16.ckpt")
   attention_hm = sess.run(hm1, feed_dict={inputs: [res_pic]})
@@ -61,6 +62,5 @@ with tf.Session() as sess:
   # superimposed
   gray_pic = cv2.cvtColor(pic, cv2.COLOR_RGB2GRAY)
   gray_rgb_pic = cv2.cvtColor(gray_pic, cv2.COLOR_GRAY2RGB)
-  print(jet_hm.shape, gray_rgb_pic.shape)
   output = cv2.addWeighted(gray_rgb_pic, 0.3, jet_hm, 0.7, 0)
   cv2.imwrite("heatmap.png", jet_hm)
