@@ -1,5 +1,5 @@
 # W4995-dl Colorization with attention
-# Evaluate the loss as 1) sum of l2 norms, aka MSE, 2) PSNR peak signal to noise ratio, 
+# Evaluate the loss as 1) RMSE, 2) PSNR peak signal to noise ratio, 
 # 3) deviation in avg color saturation
 # Others in consideration: percent deviation in class rebalancing, boundary limitation, boundary smoothness
 
@@ -9,16 +9,18 @@ import sys
 import glob
 
 
-def L2_lab(pred, gtruth):
-	#@pred, gtruth: nested arrays
-	#OR RMSD? class rebalancing?
-	loss = []
-	for i in range(0, len(pred)):
-		pred_lab = color.rgb2lab(pred[i])
-		gtruth_lab = color.rgb2lab(gtruth[i])
-		#loss.append((pred[i][1]-gtruth[i][1])**2 + (pred[i][2]-gtruth[i][2])**2)
-		loss.append(measure.compare_mse(gtruth_lab[i],pred_lab[i]))
-	return "L2 norm (LAB): %f" % (sum(loss)/len(loss))
+def RMSE_lab(pred, gtruth):
+    #@pred, gtruth: nested arrays
+    #OR RMSD? class rebalancing?
+    loss = []
+    m = pred[0].shape[0] * 3
+    for i in range(len(pred)):
+        pred_lab = color.rgb2lab(pred[i])
+        gtruth_lab = color.rgb2lab(gtruth[i])
+        #loss.append((pred[i][1]-gtruth[i][1])**2 + (pred[i][2]-gtruth[i][2])**2)
+        loss.append(measure.compare_mse(gtruth_lab[i],pred_lab[i]))
+    return "RMSE (LAB): %f" % (np.sqrt(sum(loss))/(np.sqrt(m)*len(loss)))
+
 
 def L2_AuC(pred,gtruth):
 	for i in range(0, len(pred)):
@@ -83,10 +85,10 @@ def get_images(folder):
     return images
 
 
-pred_rgb = get_images(sys.argv[1])
-gtruth_rgb = get_images(sys.argv[2])
-print(L2_lab(pred_rgb, gtruth_rgb))
-print(PSNR_rgb(pred_rgb,gtruth_rgb))
-print(saturation_hsv(pred_rgb,gtruth_rgb))
+#pred_rgb = get_images(sys.argv[1])
+#gtruth_rgb = get_images(sys.argv[2])
+#print(RMSE_lab(pred_rgb, gtruth_rgb))
+#print(PSNR_rgb(pred_rgb,gtruth_rgb))
+#print(saturation_hsv(pred_rgb,gtruth_rgb))
 
 

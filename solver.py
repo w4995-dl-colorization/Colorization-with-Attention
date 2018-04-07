@@ -90,7 +90,7 @@ class Solver(object):
         # reshape
         res_hm = res_hm.reshape((self.batch_size, size1, size1))
         # resize from 56 x 56 to 64 x 64
-        res_hm = np.concatenate([cv2.resize(res_hm[i], (size2, size2), interpolation=cv2.INTER_AREA)[None, :, :] for i in range(self.batch_size)], axis=0)
+        res_hm = np.concatenate([cv2.resize(res_hm[i], (size2, size2))[None, :, :] for i in range(self.batch_size)], axis=0)
         return res_hm
 
 
