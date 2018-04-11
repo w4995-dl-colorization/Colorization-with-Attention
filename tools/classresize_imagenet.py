@@ -1,9 +1,9 @@
-# at root, run this script by python tools/classextract_imagenet.py
+# at root, run this script by python tools/extract_imagenet.py
 # relative path for imagenet dir: data/ILSVRC2012_img_train/*.tar
 # 1000 tars for each class in total
 # each tar can be extracted to get 1300 original size imgs
 
-# USAGE: This script opens the manually selected images folder, (images name like n02009229_4994.JPEG), extract images with the same classes from 1000 class tar to each class folder
+# USAGE: This script opens the manully selected images folder, figure out the classes and open each class folder and output the resized 256by256by3
 
 # matplotlib GridSpec
 
@@ -19,6 +19,7 @@ import re
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
+import resize
 
 # config path
 path = os.path.join(os.getcwd(), 'data', 'ILSVRC2012_img_train')
@@ -34,16 +35,15 @@ list_of_class = glob.glob(manual_path+"/*")
 list_of_chosen_dir = list(
     map(lambda x: ntpath.basename(x).split("_")[0], list_of_class))
 
-# output e.g. n07753592.tar , file name
-list_of_chosen_tar = list(map(lambda x: x+".tar", list_of_chosen_dir))
-
 print("In total %d classes of tars scanned" % len(list_of_tar))
 
-list_of_chosen = list(zip(list_of_chosen_dir, list_of_chosen_tar))
-print("%d Classes found to be extracted." % len(list_of_chosen))
+print("%d Classes found to be extracted." % len(list_of_chosen_dir))
 
-for dirname, tarname in list_of_chosen:
-    print("extracting", dirname, path+"/"+tarname)
-    tar = tarfile.open(path+"/"+tarname)
-    tar.extractall(path=path+"/"+dirname)
-    tar.close()
+for dirname in list_of_chosen_dir:
+    print("resizing", dirname)
+    class_imgs_path = glob.glob(path+"/"+dirname+"/*")
+    imgs = skimage.io.imread_collection(class_imgs_path)
+    resized_imgs = resize.apply(imgs)
+    for img, class_img_path in list(zip(resized_imgs, class_imgs_path)):
+        bname = ntpath.basename(class_img_path)
+        skimage.io.imsave(path+"/output/rsz_"+bname, img)

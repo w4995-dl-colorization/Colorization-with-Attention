@@ -3,8 +3,7 @@
 # 1000 tars for each class in total
 # each tar can be extracted to get 1300 original size imgs
 
-# USAGE: This script scans through all classes in imagenet and open a sample img in each tar to display them
-# Use mouse left click to append the name of class of that img to a txt file to save for class choices
+# USAGE: This script scans through all classes in imagenet, extract the first image of each class tar, output them in to a folder, 1000 items in total
 
 # matplotlib GridSpec
 
