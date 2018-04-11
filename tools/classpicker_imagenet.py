@@ -6,6 +6,8 @@
 ### USAGE: This script scans through all classes in imagenet and open a sample img in each tar to display them
 ###        Use mouse left click to append the name of class of that img to a txt file to save for class choices
 
+## matplotlib GridSpec
+
 import cv2
 import os
 import glob
@@ -15,6 +17,9 @@ import numpy as np
 import random
 import tarfile
 import re
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import numpy as np
 
 #config path
 path = os.path.join(os.getcwd(), 'data', 'ILSVRC2012_img_train')
@@ -28,4 +33,14 @@ num_class = 1000 # whole set to select from
 
 list_of_chosen = random.sample(list_of_tar, num_class)
 
+c=0
 for tarname in list_of_chosen:
+    print("extracting ", c, " ...")
+    tar = tarfile.open(tarname)
+    first_member = tar.getmembers()[0]
+    tar.extract(first_member, path="data/ILSVRC2012_img_train/sample1000/")
+    c+=1
+
+# img = cv2.imread("./color_.jpg")
+# imgplot = plt.imshow(img)
+# plt.show()
