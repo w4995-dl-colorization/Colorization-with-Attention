@@ -24,23 +24,27 @@ import numpy as np
 # config path
 path = os.path.join(os.getcwd(), 'data', 'ILSVRC2012_img_train')
 
+# config manual sample folder path
+manual_path = os.path.join(path, 'manualsample10')
+
 list_of_tar = glob.glob(path+"/*.tar")
+
+list_of_class = glob.glob(manual_path+"/*")
+
+# output e.g. n07753592 , class name
+list_of_chosen_dir = list(
+    map(lambda x: ntpath.basename(x).split("_")[0], list_of_class))
+
+# output e.g. n07753592.tar , file name
+list_of_chosen_tar = list(map(lambda x: x+".tar", list_of_chosen_dir))
 
 print("In total %d classes of tars scanned" % len(list_of_tar))
 
-# config no. of classes
-num_class = 1000  # whole set to select from
+list_of_chosen = list(zip(list_of_chosen_dir, list_of_chosen_tar))
+print("%d Classes found to be extracted." % len(list_of_chosen))
 
-list_of_chosen = random.sample(list_of_tar, num_class)
-
-c = 0
-for tarname in list_of_chosen:
-    print("extracting ", c, " ...")
-    tar = tarfile.open(tarname)
-    first_member = tar.getmembers()[0]
-    tar.extract(first_member, path="data/ILSVRC2012_img_train/sample1000/")
-    c += 1
-
-# img = cv2.imread("./color_.jpg")
-# imgplot = plt.imshow(img)
-# plt.show()
+for dirname, tarname in list_of_chosen:
+    print("extracting", dirname, path+"/"+tarname)
+    tar = tarfile.open(path+"/"+tarname)
+    tar.extractall(path=path+"/"+dirname)
+    tar.close()
