@@ -32,10 +32,10 @@ class Solver(object):
         self.net_params = net_params
 
         # end_to_end: if use end_to_end attention model or Richard Zhang's model
-        self.end_to_end = True
+        self.end_to_end = False
 
         # use_attention_in_cost: if use attention to weight loss in the cost function
-        self.use_attention_in_cost = True
+        self.use_attention_in_cost = False
 
         self.train = train
         self.dataset = DataSet(common_params=common_params, dataset_params=dataset_params)
