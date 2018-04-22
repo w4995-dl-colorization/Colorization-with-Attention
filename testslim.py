@@ -5,37 +5,24 @@ import slim_vgg
 
 import resize
 
+#demo input pic
+folder = "result_images/dog2/"
+img = "rsz_n02105412_5057.JPEG"
+heatmap = 3
+sizes = [56, 28, 7]
+pic = cv2.imread(folder+img)
+
+
 inputs = tf.placeholder(tf.float32, shape=(None, 224, 224, 3))
 model, end_points = slim_vgg.vgg_16(inputs)
-hm1 = end_points['hm1'] #heatmap tensor
-hm2 = end_points['hm2']
-hm3 = end_points['hm3']
+hm = end_points['hm'+str(heatmap)] # heatmap tensor
+
 
 saver = tf.train.Saver()
-
-#demo input pic
-pic = cv2.imread("data/Opencountry/nat190.jpg")
 
 #tf global session
 sess = tf.Session()
 
-
-
-### FEATURE add read collection
-#use that from cropnresize
-
-### Create abstraction for all 3 attention maps
-def heatmap(input_dim=(None, None), output_dim=(None, None)):
-    pass
-### concatenate
-
-### print out heatmaps visualization of a collection to a folder to mass test
-
-
-
-
-
-pnames, imgs = cropnresize.readin()
 
 ### TF resize not running GPU, too slow compared to the CPU Pool version
 ## imgs_224 = tf.image.resize_images(imgs, (224, 224, 3))
@@ -43,19 +30,21 @@ pnames, imgs = cropnresize.readin()
 
 
 ## Original code
-pics = cv2.resize(pic,(224, 224), interpolation=cv2.INTER_AREA)
+
+res_pic = cv2.resize(pic,(224, 224), interpolation=cv2.INTER_AREA)
 
 with tf.Session() as sess:
   saver.restore(sess, "models/vgg16.ckpt")
-  attention_hm = sess.run(hm1, feed_dict={inputs: [res_pic]})
-  res_hm = np.reshape(attention_hm, (56, 56))
+  attention_hm = sess.run(hm, feed_dict={inputs: [res_pic]})
+
+  size = sizes[heatmap-1]
+  res_hm = np.reshape(attention_hm, (size, size)) # 56 or 28 or 7
 
   # normalize result heatmap
   res_hm /= np.sum(res_hm)
 
   #np.set_printoptions(threshold=np.nan)
   norm_hm = cv2.normalize(src=res_hm, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
-  norm_hm = 255 - norm_hm
   resized_norm_hm = cv2.resize(norm_hm, (256, 256)) # interpolation=cv2.INTER_AREA
   jet_hm = cv2.applyColorMap(resized_norm_hm, cv2.COLORMAP_JET)
 
@@ -63,4 +52,5 @@ with tf.Session() as sess:
   gray_pic = cv2.cvtColor(pic, cv2.COLOR_RGB2GRAY)
   gray_rgb_pic = cv2.cvtColor(gray_pic, cv2.COLOR_GRAY2RGB)
   output = cv2.addWeighted(gray_rgb_pic, 0.3, jet_hm, 0.7, 0)
-  cv2.imwrite("heatmap.png", jet_hm)
+
+  cv2.imwrite(folder+"heat_"+str(heatmap)+"_"+img, output)

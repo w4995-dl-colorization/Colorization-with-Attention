@@ -4,10 +4,10 @@ Create two files one consists of picture path for training, the other for testin
 import os
 from random import shuffle
 
-imagenet_basepath = './data/Opencountry/'
+imagenet_basepath = './data/output/'
 file_list = list(os.listdir(imagenet_basepath))
 shuffle(file_list)
-split_ratio = 0.878
+split_ratio = 0.98
 mid = int(len(file_list) * split_ratio)
 
 # Split files into training and testing

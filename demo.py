@@ -11,16 +11,17 @@ import re
 
 from evaluation.evaluate_loss import RMSE_lab, PSNR_rgb, saturation_hsv
 
-reg = re.compile(".*/(.*jpg)")
+reg = re.compile(".*/(.*JPEG)")
 
-# Select from [no_att, att, end_to_end]
-model = 'end_to_end'
+# Select from [no_att, weighted_loss, end_to_end_weighted_loss]
+model = 'weighted_loss2'
 
 # If save the colorized images
-SAVE_IMG = False
+# May need to create a folder in order to save the images
+SAVE_IMG = True
 
 # Read into images
-folder_path = 'data/Opencountry/'
+folder_path = 'data/output/'
 input_file = 'data/test.txt'
 # img_names = ['art582.jpg', 'cdmc109.jpg', 'cdmc276.jpg', 'cdmc354.jpg', 'nat190.jpg']
 img_names = []
@@ -62,7 +63,7 @@ for img_name in img_names:
     if len(img.shape) == 3:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     if SAVE_IMG:
-        imsave('results/gray_'+img_name, img)
+        imsave('ImageNet_results/gray_'+img_name, img)
 
     # Preprocess the image
     img = img.reshape((1, img.shape[0], img.shape[1], 1))
@@ -74,7 +75,7 @@ all_data_l = np.vstack(img_list)
 
 # Construct graph
 training_flag = tf.placeholder(tf.bool)
-if model == 'end_to_end':
+if model == 'end_to_end_weighted_loss':
     autocolor = Net_att(train=training_flag)
 else:
     autocolor = Net(train=training_flag)
@@ -106,7 +107,7 @@ with tf.Session() as sess:
             reconstructed_img_list.append(reconstructed_img_rgb.astype(np.uint8))
 
             if SAVE_IMG:
-                imsave('results/color_'+model+'_'+img_names[start_ind+i], reconstructed_img_rgb)
+                imsave('output_results/color_'+model+'_'+img_names[start_ind+i], reconstructed_img_rgb)
  
     print(reconstructed_img_list[0].dtype, img_col[0].dtype)
     print(RMSE_lab(reconstructed_img_list, img_col))

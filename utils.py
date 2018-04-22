@@ -212,8 +212,7 @@ class ClassRebalance():
 
         # define uniform probability
         # self.uni_probs (313,)
-        self.uni_probs = np.zeros_like(self.prior_probs)
-        self.uni_probs[self.prior_probs != 0] = 1.
+        self.uni_probs = np.ones_like(self.prior_probs)
         self.uni_probs = self.uni_probs/np.sum(self.uni_probs)
 
         # convex combination of empirical prior and uniform distribution
