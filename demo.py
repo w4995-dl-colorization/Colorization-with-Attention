@@ -11,10 +11,20 @@ import re
 
 from evaluation.evaluate_loss import RMSE_lab, PSNR_rgb, saturation_hsv
 
-reg = re.compile(".*/(.*JPEG)")
+# Choose a dataset
+# Select from [Opencountry, ImageNet5w]
+dataset = 'ImageNet5w'
 
-# Select from [no_att, weighted_loss, end_to_end_weighted_loss]
-model = 'weighted_loss2'
+# Choose a model
+# Select from [no_att_5w, ht3_weighted_loss_5w, end_to_end_weighted_loss]
+model = 'ht3_weighted_loss_5w'
+# model = 'no_att_5w'
+
+
+reg = re.compile(".*/(.*JPEG)")
+if dataset == 'Opencountry':
+    reg = re.compile(".*/(.*jpg)")
+
 
 # If save the colorized images
 # May need to create a folder in order to save the images
@@ -22,18 +32,25 @@ SAVE_IMG = True
 
 # Read into images
 folder_path = 'data/output/'
+output_path = 'output_results/output/'
+if dataset == 'Opencountry':
+    folder_path = 'data/Opencountry/'
+    output_path = 'output_results/Opencountry/'
+    
+
 input_file = 'data/test.txt'
-# img_names = ['art582.jpg', 'cdmc109.jpg', 'cdmc276.jpg', 'cdmc354.jpg', 'nat190.jpg']
-img_names = []
+
+img_names = ['rsz_n01531178_4510.JPEG']
+# img_names = ['rsz_n02105412_5057.JPEG', 'rsz_n02105412_5201.JPEG', 'rsz_n02105412_5344.JPEG', 'rsz_n02105412_5692.JPEG', 'rsz_n02107574_362.JPEG']
 # Select the image names
-with open(input_file, 'r') as f:
-    for line in f:
-        line = line.strip()
-        img_name = reg.search(line).group(1)
-        img_names.append(img_name)
+# with open(input_file, 'r') as f:
+#     for line in f:
+#         line = line.strip()
+#         img_name = reg.search(line).group(1)
+#         img_names.append(img_name)
 
 img_num = len(img_names)
-batch_size = 5
+batch_size = 1
 assert batch_size <= img_num
 remainder = img_num % batch_size
 
@@ -101,16 +118,17 @@ with tf.Session() as sess:
         conv8_313_returned = sess.run(conv8_313, feed_dict={training_flag:False, data_l:batch_data_l})
 
         for i in range(batch_size):
+
             # Colorize w/ class rebalancing
             # reconstructed_img_rgb  : [height, width, 3], predicted colorized image
             reconstructed_img_rgb = decode(batch_data_l[i][None,:,:,:], conv8_313_returned[i][None,:,:,:], 0.38)
             reconstructed_img_list.append(reconstructed_img_rgb.astype(np.uint8))
 
             if SAVE_IMG:
-                imsave('output_results/color_'+model+'_'+img_names[start_ind+i], reconstructed_img_rgb)
+                imsave('tmp/color_'+model+'_'+img_names[start_ind+i], reconstructed_img_rgb)
  
     print(reconstructed_img_list[0].dtype, img_col[0].dtype)
-    print(RMSE_lab(reconstructed_img_list, img_col))
-    print(PSNR_rgb(reconstructed_img_list, img_col))
-    print(saturation_hsv(reconstructed_img_list, img_col))
+    # print(RMSE_lab(reconstructed_img_list, img_col))
+    # print(PSNR_rgb(reconstructed_img_list, img_col))
+    # print(saturation_hsv(reconstructed_img_list, img_col))
 
