@@ -18,10 +18,11 @@ dataset = 'ImageNet5w'
 # Choose a model
 # Select from [no_att_5w, ht3_weighted_loss_5w, end_to_end_weighted_loss]
 model = 'ht3_weighted_loss_5w'
-# model = 'no_att_5w'
-
+#model = 'no_att_5w'
+#model = 'end_to_end_weighted_loss'
 
 reg = re.compile(".*/(.*JPEG)")
+
 if dataset == 'Opencountry':
     reg = re.compile(".*/(.*jpg)")
 
@@ -33,16 +34,18 @@ SAVE_IMG = True
 # Read into images
 folder_path = 'data/output/'
 output_path = 'output_results/output/'
+
 if dataset == 'Opencountry':
     folder_path = 'data/Opencountry/'
     output_path = 'output_results/Opencountry/'
-    
+
 
 input_file = 'data/test.txt'
 
-img_names = ['rsz_n01531178_4510.JPEG']
+img_names = ['rsz_n02119789_3731.JPEG']
 # img_names = ['rsz_n02105412_5057.JPEG', 'rsz_n02105412_5201.JPEG', 'rsz_n02105412_5344.JPEG', 'rsz_n02105412_5692.JPEG', 'rsz_n02107574_362.JPEG']
 # Select the image names
+
 # with open(input_file, 'r') as f:
 #     for line in f:
 #         line = line.strip()
@@ -121,14 +124,14 @@ with tf.Session() as sess:
 
             # Colorize w/ class rebalancing
             # reconstructed_img_rgb  : [height, width, 3], predicted colorized image
-            reconstructed_img_rgb = decode(batch_data_l[i][None,:,:,:], conv8_313_returned[i][None,:,:,:], 0.38)
+            reconstructed_img_rgb = decode(batch_data_l[i][None,:,:,:], conv8_313_returned[i][None,:,:,:], 0.00001)
+            reconstructed_img_rgb = np.concatenate([reconstructed_img_rgb[:,:,2][:,:,np.newaxis], reconstructed_img_rgb[:,:,1][:,:,np.newaxis], reconstructed_img_rgb[:,:,0][:,:,np.newaxis]], axis=2)
             reconstructed_img_list.append(reconstructed_img_rgb.astype(np.uint8))
 
             if SAVE_IMG:
-                imsave('tmp/color_'+model+'_'+img_names[start_ind+i], reconstructed_img_rgb)
- 
+                imsave('output_results/0_00001_demo_color_'+model+'_'+img_names[start_ind+i], reconstructed_img_rgb)
+
     print(reconstructed_img_list[0].dtype, img_col[0].dtype)
     # print(RMSE_lab(reconstructed_img_list, img_col))
     # print(PSNR_rgb(reconstructed_img_list, img_col))
     # print(saturation_hsv(reconstructed_img_list, img_col))
-

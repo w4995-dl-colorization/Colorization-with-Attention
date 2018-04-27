@@ -7,6 +7,8 @@ from net_att import Net_att
 from net_densenet import DenseNet
 from data import DataSet
 from datetime import datetime
+from utils import decode
+from skimage.io import imsave
 
 import cv2
 import slim_vgg
@@ -33,11 +35,11 @@ class Solver(object):
             self.train_dir = str(solver_params['train_dir'])
             self.lr_decay = float(solver_params['lr_decay'])
             self.decay_steps = int(solver_params['decay_steps'])
-            
+
         self.common_params = common_params
         self.net_params = net_params
 
-        
+
 
         self.train = train
         self.dataset = DataSet(common_params=common_params, dataset_params=dataset_params)
@@ -53,14 +55,14 @@ class Solver(object):
             self.data_l = tf.placeholder(tf.float32, (self.batch_size, self.height, self.width, 1))
             self.gt_ab_313 = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4), 313))
             self.prior_color_weight_nongray = tf.placeholder(tf.float32, (self.batch_size, int(self.height / 4), int(self.width / 4), 1))
-  
+
             if self.end_to_end == True:
                 self.net = Net_att(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
             else:
                 self.net = Net(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
-            
+
             # self.net = DenseNet(train=self.training_flag, common_params=self.common_params, net_params=self.net_params)
-  
+
             self.conv8_313 = self.net.inference(self.data_l)
             new_loss, g_loss = self.net.loss(self.conv8_313, self.prior_color_weight_nongray, self.gt_ab_313, self.res_hm1, self.res_hm2, self.res_hm3, self.use_attention_in_cost)
             tf.summary.scalar('new_loss', new_loss)
@@ -74,7 +76,7 @@ class Solver(object):
             inputs = tf.placeholder(tf.float32, shape=(None, 224, 224, 3))
             _, end_points = slim_vgg.vgg_16(inputs)
             # heatmap tensors
-            hm1 = end_points['hm1'] 
+            hm1 = end_points['hm1']
             hm2 = end_points['hm2']
             hm3 = end_points['hm3']
         return inputs, hm1, hm2, hm3
@@ -96,7 +98,7 @@ class Solver(object):
 
 
     def train_model(self):
-        
+
         with tf.device(self.device):
 
             # Student
@@ -110,7 +112,7 @@ class Solver(object):
             opt = tf.train.AdamOptimizer(learning_rate=learning_rate, beta2=0.99)
 
 
-            # Compute gradient, moving average of weights and update weights            
+            # Compute gradient, moving average of weights and update weights
             grads = opt.compute_gradients(new_loss)
             apply_gradient_op = opt.apply_gradients(grads, global_step=self.global_step)
             variable_averages = tf.train.ExponentialMovingAverage(
@@ -138,7 +140,7 @@ class Solver(object):
             config.gpu_options.allow_growth = True
             sess = tf.Session(config=config)
             sess_teacher = tf.Session(config=config)
-            
+
 
             # Student: load/create model
             saver_student = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='colorization'))
@@ -147,19 +149,19 @@ class Solver(object):
                 saver_student.restore(sess, ckpt_student.model_checkpoint_path)
             else:
                 sess.run(tf.global_variables_initializer())
-            
+
             # Teacher: load model
             inputs, hm1, hm2, hm3 = self.construct_graph_for_teacher()
             saver_teacher = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='vgg_16'))
             saver_teacher.restore(sess_teacher, 'models/vgg16.ckpt')
- 
+
 
             # Student: Initialize summary writer
             summary_writer = tf.summary.FileWriter(self.train_dir, sess.graph)
 
             for step in range(self.max_steps):
                 start_time = time.time()
- 
+
                 # Get input data
                 images, data_l, gt_ab_313, prior_color_weight_nongray = self.dataset.batch()
 

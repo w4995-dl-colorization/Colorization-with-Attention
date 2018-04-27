@@ -6,13 +6,14 @@ import slim_vgg
 import resize
 
 #demo input pic
-folder = "result_images/dog2/"
-img = "rsz_n02105412_5057.JPEG"
+folder = "ImageNet_results/"
+output_folder = "ImageNet_results/"
+img = "gray_rsz_n01532829_1503.JPEG"
 heatmap = 3
 sizes = [56, 28, 7]
 pic = cv2.imread(folder+img)
-
-
+print(pic.shape)
+# pic = cv2.resize(pic, (224, 224))
 inputs = tf.placeholder(tf.float32, shape=(None, 224, 224, 3))
 model, end_points = slim_vgg.vgg_16(inputs)
 hm = end_points['hm'+str(heatmap)] # heatmap tensor
@@ -51,6 +52,7 @@ with tf.Session() as sess:
   # superimposed
   gray_pic = cv2.cvtColor(pic, cv2.COLOR_RGB2GRAY)
   gray_rgb_pic = cv2.cvtColor(gray_pic, cv2.COLOR_GRAY2RGB)
+  print(gray_rgb_pic.shape, jet_hm.shape)
   output = cv2.addWeighted(gray_rgb_pic, 0.3, jet_hm, 0.7, 0)
 
-  cv2.imwrite(folder+"heat_"+str(heatmap)+"_"+img, output)
+  cv2.imwrite(output_folder+"heat1_"+str(heatmap)+"_"+img, output)
