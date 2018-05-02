@@ -1,7 +1,7 @@
 # Colorization with Attention
 
 ### Results
-![presentation](https://github.com/w4995-dl-colorization/Colorization-with-Attention/tree/master/results.jpg)
+![presentation](https://github.com/w4995-dl-colorization/Colorization-with-Attention/blob/master/images/results.jpg)
 
 ### Instructions
 
