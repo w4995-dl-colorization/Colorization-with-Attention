@@ -78,6 +78,10 @@ class DataSet(object):
                 item = self.record_queue.get()
                 image = cv2.imread(item)
                 assert len(image.shape)==3 and image.shape[2]==3
+
+                # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                # image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
                 images.append(image)
             images = self.image_process(images)
 
@@ -118,6 +122,7 @@ class DataSet(object):
 
         batch = _random_flip_leftright(batch)
         batch = _random_crop(batch, [batch[0].shape[0], batch[0].shape[1]], 4)
+
 
         return batch
 

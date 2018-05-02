@@ -76,4 +76,4 @@ sess.close()
 probs = probs / np.sum(probs)
 
 # Save the result
-np.save('probs', probs)
+np.save('resources/prior_probs', probs)

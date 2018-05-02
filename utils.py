@@ -139,6 +139,7 @@ class NNEncode():
         # Find distances and indices of k-NN for each pixel in pts_flt
         # dists [P, self.k]
         # inds  [P, self.k]
+
         (dists, inds) = self.nbrs.kneighbors(pts_flt)
 
         # Calculate the probability/weight of each neighbor
@@ -146,7 +147,7 @@ class NNEncode():
         # wts  [P, self.k]
         wts = np.exp(-dists**2/(2*self.sigma**2))
         wts = wts/np.sum(wts, axis=1)[:, na()]
-
+        
         # print(self.pts_enc_flt.shape, self.p_inds.shape, inds.shape, wts.shape)
         self.pts_enc_flt[self.p_inds, inds] = wts
 
@@ -184,7 +185,9 @@ def _nnencode(data_ab_ss):
     # transpose data_ab_ss to [N, 2, H, W]
     data_ab_ss = np.transpose(data_ab_ss, (0, 3, 1, 2))
     nnenc = NNEncode(NN, sigma, km_filepath=os.path.join(enc_dir, 'pts_in_hull.npy'))
+
     gt_ab_313 = nnenc.encode_points_mtx_nd(data_ab_ss, axis=1)
+
     gt_ab_313 = np.transpose(gt_ab_313, (0, 2, 3, 1))
 
     return gt_ab_313
@@ -212,8 +215,7 @@ class ClassRebalance():
 
         # define uniform probability
         # self.uni_probs (313,)
-        self.uni_probs = np.zeros_like(self.prior_probs)
-        self.uni_probs[self.prior_probs != 0] = 1.
+        self.uni_probs = np.ones_like(self.prior_probs)
         self.uni_probs = self.uni_probs/np.sum(self.uni_probs)
 
         # convex combination of empirical prior and uniform distribution
@@ -244,6 +246,9 @@ class ClassRebalance():
         data_ab_quant (N, 313, H, W)
         """
         data_ab_maxind = np.argmax(data_ab_quant, axis=axis)
+
+        # data_ab_maxind (N, 1, H, W)
+
         corr_factor = self.weights[data_ab_maxind]
         if(axis == 0):
             return corr_factor[na(), :]
@@ -288,6 +293,7 @@ def preprocess(data):
       prior_color_weight_nongray: the weight after rebalancing of each non-gray pixel
       at each image in the batch (N * H/4 * W/4 * 1)
     '''
+
     warnings.filterwarnings("ignore")
 
     # rgb2lab
@@ -323,8 +329,9 @@ def preprocess(data):
     prior_boost = _prior_boost(gt_ab_313)
 
     # Get the weight of each non-gray pixel
-    # prior_color_weight_nongray: [N, 1, H/4, W/4]
+    # prior_color_weight_nongray: [N, H/4, W/4, 1]
     prior_color_weight_nongray = prior_boost * nongray_mask
+
 
     return data_l, gt_ab_313, prior_color_weight_nongray
 
@@ -356,13 +363,16 @@ def decode(data_l, conv8_313, temperature=1):
     # conv8_313 (height/4, width/4, 313)
     conv8_313 = conv8_313[0, :, :, :]
     enc_dir = './resources'
-
+    
     conv8_313_rh = conv8_313/temperature
+
+
     class8_313_rh = softmax(conv8_313_rh)
 
     # Load color bin and combine them according to the predicted
     # distribution on color bins for each pixel
     cc = np.load(os.path.join(enc_dir, 'pts_in_hull.npy'))
+
     data_ab = np.dot(class8_313_rh, cc)
 
     # height/4 x width/4 -> height x width

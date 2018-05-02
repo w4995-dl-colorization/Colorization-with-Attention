@@ -116,19 +116,36 @@ class Net(object):
             conv8_313 = temp_conv
         return conv8_313
 
-    def loss(self, conv8_313, prior_color_weight_nongray, gt_ab_313, res_hm1, use_attention_in_cost=False):
+    def hm_weight_mask(self, res_hm):
+        """
+        Args:
+          res_hm: 3-D tensor heatmap extracted from VGG16.
+        Return:
+          res_hm_mask: softmax version of 3-D tensor heatmap.
+        """
+        size1 = res_hm.shape[1]
+        res_hm = tf.reshape(res_hm, (-1, size1*size1))
+        res_hm = tf.nn.softmax(res_hm, axis=1)
+        res_hm_mask = tf.reshape(res_hm, (1,-1,size1,size1,1))
+        return res_hm_mask
+
+    def loss(self, conv8_313, prior_color_weight_nongray, gt_ab_313, res_hm1, res_hm2, res_hm3, use_attention_in_cost=False):
         """loss
 
         Args:
           conv8_313: 4-D tensor [batch_size, height/4, width/4, 313],
                      predicted ab probability distribution of images
-          prior_color_weight_nongray: 4-D tensor [batch_size, height/4, width/4, 313],
+          prior_color_weight_nongray: 4-D tensor [batch_size, height/4, width/4, 1],
                                prior weight for each color bin on the ab gamut
           gt_ab_313: 4-D tensor [batch_size, height/4, width/4, 313],
                      real ab probability distribution of images
-          
           res_hm1: 3-D tensor [batch_size, height/4, width/4],
-                   heatmap extracted from VGG16.
+                   high-level heatmap extracted from VGG16.
+          res_hm2: 3-D tensor [batch_size, height/4, width/4],
+                   mid-level heatmap extracted from VGG16.
+          res_hm3: 3-D tensor [batch_size, height/4, width/4],
+                   low-level heatmap extracted from VGG16.
+          use_attention_in_cost: bool, whether to integrate attention into the cost function.
         Return:
           new_loss: L_cl(Z_predicted, Z) as in the paper
           g_loss: cross_entropy between predicted and real ab probability
@@ -142,24 +159,31 @@ class Net(object):
 
         flat_conv8_313 = tf.reshape(conv8_313, [-1, 313])
         flat_gt_ab_313 = tf.reshape(gt_ab_313, [-1, 313])
-        g_loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels=flat_gt_ab_313, logits=flat_conv8_313)) / (self.batch_size)
 
+        # Denote label y and the output of last layer o
+        # The gradient of cost function L (softmax_cross_entropy between y and o)
+        # with respect to the input is o - y
+        # This part gives us dL/do
+        g_loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(labels=flat_gt_ab_313, logits=flat_conv8_313)) / (self.batch_size)
         dl2c = tf.gradients(g_loss, conv8_313)
         dl2c = tf.stop_gradient(dl2c)
 
 
         # Create a weighted mask from heatmap and use it to weight loss at each pixel
-        size1 = res_hm1.shape[1]
-        res_hm1 = tf.reshape(res_hm1, (-1, size1*size1))
-        res_hm1 = tf.nn.softmax(res_hm1, axis=1)
-        res_hm1_mask = tf.reshape(res_hm1, (1,-1,size1,size1,1))
+        res_hm1_mask = self.hm_weight_mask(res_hm1)
+        res_hm2_mask = self.hm_weight_mask(res_hm2)
+        res_hm3_mask = self.hm_weight_mask(res_hm3)
 
         # prior_color_weight_nongray (batch_size, height/4, width/4, 1)
-
+        # This part gives us dL/do * o * weighted_color * weighted_heat + weight_loss
+        # When we take gradient of this value with respect to input i in the solver.py,
+        # we will get dL/do * do/di * weighted_color * weighted_heat + d weight_loss / di
+        # = dL/di * weighted_color * weighted_heat + d weight_loss / di
         cross_entropy_tensor = dl2c * conv8_313 * prior_color_weight_nongray
         if use_attention_in_cost:
-            cross_entropy_tensor *= res_hm1_mask
+            res_hm_mask_combination = 1/6 * res_hm1_mask + 1/3 * res_hm2_mask + 1/2 * res_hm3_mask
+            cross_entropy_tensor *= res_hm_mask_combination
 
-        new_loss = tf.reduce_sum(cross_entropy_tensor) + weight_loss
+        new_loss = tf.reduce_sum(g_loss) + weight_loss
 
         return new_loss, g_loss

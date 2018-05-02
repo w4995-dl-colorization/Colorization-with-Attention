@@ -1,12 +1,31 @@
+# Colorization with Attention
 
-### Train
+### Results
+![presentation](https://github.com/w4995-dl-colorization/Colorization-with-Attention/tree/master/results.jpg)
 
-##### Download MIT CVCL Opencountry dataset
-http://cvcl.mit.edu/database.htm
+### Instructions
 
-#### Train customer data
+#### Download a dataset
 
-1. Transform your training data to text_record file
+MIT CVCL Opencountry dataset at: http://cvcl.mit.edu/database.htm
+
+ImageNet at: http://www.image-net.org/
+
+#### Use Pretrained Model 
+1. Download our pre-trained models(Three different models) [here](https://drive.google.com/file/d/1yI0vt6dv_xVKFKWX2-p609sNfPmABrV8/view?usp=sharing), unzip it and put the model/ folder into the top level of the repo.
+
+Note: The pretrained model is only trained using a subset of ImageNet (~50,000 animal images) so it
+does not give guarantee to performance on other type of images.
+
+2. Test (Follow the instruction in demo.py to set up parameters)
+
+```
+python3 demo.py
+```
+
+#### Train your own model
+
+1. Transform your training data to text_record file(The ratio of splitting training/testing can be set up in create_imagenet_list.py)
 ```
 python3 tools/create_imagenet_list.py
 ```
@@ -18,7 +37,7 @@ the existing "prior_probs.npy" in the resource folder by skipping this step.
 python3 tools/create_prior_probs.py
 ```
 
-3. Write your own train-configure file and put it in conf/ (reference to conf/train.cfg for an example)
+3. Write your own train-configure file and put it in conf/ (refer to conf/train.cfg for an example)
 
 4. Train
 
@@ -33,15 +52,20 @@ GPU:
 python3 tools/train.py -c conf/train_gpu.cfg
 ```
 
-5. Test
+5. Test (Follow the instruction in demo.py to set up parameters)
 
-    ```
-    python3 demo.py
-    ```
+```
+python3 demo.py
+```
 
+### Reference
+[Richard Zhang, Phillip Isola, Alexei A. Efros. Colorful Image Colorization, ECCV2016.](https://arxiv.org/abs/1603.08511)
+
+[Saumya Jetley, Nicholas A. Lord, Namhoon Lee and Philip H. S. Torr, learn to pay attention, ICLR 2018](https://arxiv.org/abs/1804.02391)
 
 ### Acknowledgement
 The code in this repo is built on top of the work at:
+
 https://github.com/nilboy/colorization-tf
 
 https://github.com/tensorflow/models/blob/master/research/slim/nets/vgg.py
@@ -50,6 +74,8 @@ https://github.com/tensorflow/models/blob/master/research/slim/nets/vgg.py
 ├── conf            (configure files)
 
 ├── data            (dataset)
+
+├── evaluate.py     (Run quantitative measurement of errors of the prediction)
 
 ├── evaluation
 
@@ -79,7 +105,7 @@ https://github.com/tensorflow/models/blob/master/research/slim/nets/vgg.py
 
 ├── solver.py           (graph and session for training)
 
-├── testslim.py
+├── testslim.py         (Can be used to extract attention map)
 
 ├── tools
 
@@ -87,10 +113,7 @@ https://github.com/tensorflow/models/blob/master/research/slim/nets/vgg.py
 
 │   ├── create_prior_probs.py   (create empiricial probability used for class rebalancing from current dataset)
 
-│   ├── cropnresize.py          (preprocess images for attention)
-
-│   ├── testslim.py             (test attention extraction)
-
 │   └── train.py                (wrapper for training)
 
 └── utils.py                    (helper functions)
+
