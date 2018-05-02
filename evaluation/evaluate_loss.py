@@ -18,7 +18,7 @@ def RMSE_lab(pred, gtruth):
         pred_lab = color.rgb2lab(pred[i])
         gtruth_lab = color.rgb2lab(gtruth[i])
         #loss.append((pred[i][1]-gtruth[i][1])**2 + (pred[i][2]-gtruth[i][2])**2)
-        loss.append(measure.compare_mse(gtruth_lab[i],pred_lab[i]))
+        loss.append(measure.compare_mse(gtruth_lab,pred_lab))
     return "RMSE (LAB): %f" % (np.sqrt(sum(loss))/(np.sqrt(m)*len(loss)))
 
 
@@ -42,10 +42,10 @@ def saturation_hsv(pred, gtruth):
 	for i in range(0, len(pred)):
 		pred_hsv = color.rgb2hsv(pred[i])
 		gtruth_hsv = color.rgb2hsv(gtruth[i])
-		sat_pred = sum(pred_hsv[i][:,1])
-		sat_truth = sum(gtruth_hsv[i][:,1])
+		sat_pred = np.sum(pred_hsv[:,1])
+		sat_truth = np.sum(gtruth_hsv[:,1])
 		loss.append(abs(sat_pred-sat_truth)/sat_truth)
-	return "Percent Saturation Deviation (HSV): %f" % (sum(loss)/len(loss))
+	return "Percent Saturation Deviation (HSV): %f" % (np.sum(loss)/len(loss))
 
 #def color_bleed():
 

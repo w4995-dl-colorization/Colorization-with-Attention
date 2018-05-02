@@ -6,38 +6,64 @@ from net_att import Net_att
 from net_densenet import DenseNet
 from skimage.io import imsave
 import random
+import time
 import cv2
 import re
 
-'''
-Parameters(Please follow the instruction below)
-'''
-# Note: The current model only supports image with size 256 * 256
-# 1.Choose a model
+from evaluation.evaluate_loss import RMSE_lab, PSNR_rgb, saturation_hsv
+
+# Choose a dataset
+# Select from [Opencountry, ImageNet5w]
+dataset = 'ImageNet5w'
+
+# Choose a model
 # Select from [no_att_5w, ht3_weighted_loss_5w, end_to_end_weighted_loss]
-#model = 'ht3_weighted_loss_5w'
-#model = 'no_att_5w'
-model = 'end_to_end_weighted_loss'
+# model = 'ht3_weighted_loss_5w'
+model = 'no_att_5w'
+# model = 'end_to_end_weighted_loss'
+
+reg = re.compile(".*/(.*JPEG)")
+
+if dataset == 'Opencountry':
+    reg = re.compile(".*/(.*jpg)")
 
 
-# 2.Specify the path to read the image from
-# and the path to generate the generated image
-# Note: Both paths must be valid
+# If save the colorized images
+# May need to create a folder in order to save the images
+SAVE_IMG = False
+
+# Read into images
 folder_path = 'data/output/'
-output_path = 'output_results/'
+output_path = 'output_results/output/'
 
-# 3.Specify the image names
-img_names = ['rsz_n02119789_3731.JPEG']
+if dataset == 'Opencountry':
+    folder_path = 'data/Opencountry/'
+    output_path = 'output_results/Opencountry/'
 
 
+input_file = 'data/test.txt'
 
-'''
-Code
-'''
+img_names = []
+
+with open(input_file, 'r') as f:
+    for line in f:
+        line = line.strip()
+        img_name = reg.search(line).group(1)
+        img_names.append(img_name)
+
 img_num = len(img_names)
 batch_size = 1
 assert batch_size <= img_num
+remainder = img_num % batch_size
 
+
+# We add unnecessary files in order to guarantee that each batch has the same
+# number of samples
+if remainder != 0:
+    pad_num = batch_size - remainder
+    redundant_img_names = [ img_names[i] for i in random.sample(range(img_num), pad_num) ]
+    img_names += redundant_img_names
+    img_num += pad_num
 
 height = 256
 width = 256
@@ -49,14 +75,13 @@ img_col = []
 
 for img_name in img_names:
     img = cv2.imread(folder_path+img_name)
-    if img.shape[0] != 256 or img.shape[1] != 256:
-        img = cv2.resize(img, (256, 256))
     #save ref
     img_col.append(img)
 
     # Convert image from rgb to gray
     if len(img.shape) == 3:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    if SAVE_IMG:
         imsave(output_path+img_name, img)
 
     # Preprocess the image
@@ -81,6 +106,7 @@ conv8_313 = autocolor.inference(data_l)
 
 # Load model and run the graph
 saver = tf.train.Saver()
+s_t = time.time()
 
 with tf.Session() as sess:
     saver.restore(sess, 'models/'+model+'/model.ckpt')
@@ -99,7 +125,17 @@ with tf.Session() as sess:
             # Colorize w/ class rebalancing
             # reconstructed_img_rgb  : [height, width, 3], predicted colorized image
             reconstructed_img_rgb = decode(batch_data_l[i][None,:,:,:], conv8_313_returned[i][None,:,:,:], 0.00001)
-            reconstructed_img_rgb = np.concatenate([reconstructed_img_rgb[:,:,2][:,:,np.newaxis], reconstructed_img_rgb[:,:,1][:,:,np.newaxis], reconstructed_img_rgb[:,:,0][:,:,np.newaxis]], axis=2)
             reconstructed_img_list.append(reconstructed_img_rgb.astype(np.uint8))
 
-            imsave(output_path+model+'_'+img_names[start_ind+i], reconstructed_img_rgb)
+            # Convert to rgb
+            reconstructed_img_rgb = np.concatenate([reconstructed_img_rgb[:,:,2][:,:,np.newaxis], reconstructed_img_rgb[:,:,1][:,:,np.newaxis], reconstructed_img_rgb[:,:,0][:,:,np.newaxis]], axis=2)
+
+
+            if SAVE_IMG:
+                imsave(output_path+model+'_'+img_names[start_ind+i], reconstructed_img_rgb)
+        # Print out progress
+        print(start_ind+1, '/', len(img_names), time.time()-s_t)
+
+print(RMSE_lab(reconstructed_img_list, img_col))
+print(PSNR_rgb(reconstructed_img_list, img_col))
+print(saturation_hsv(reconstructed_img_list, img_col))

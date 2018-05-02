@@ -7,7 +7,8 @@ from random import shuffle
 imagenet_basepath = './data/output/'
 file_list = list(os.listdir(imagenet_basepath))
 shuffle(file_list)
-split_ratio = 0.98
+# Set up the ratio between training set and testing set
+split_ratio = 0.995
 mid = int(len(file_list) * split_ratio)
 
 # Split files into training and testing

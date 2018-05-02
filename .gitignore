@@ -5,8 +5,8 @@ testdata/*
 
 imagenethttp.txt
 *.pyc
-*.jpg
 data/Opencountry/*
+output_results/*
 data/__*
 models/*
 probs.npy
