@@ -38,9 +38,6 @@ class Solver(object):
 
         self.common_params = common_params
         self.net_params = net_params
-
-
-
         self.train = train
         self.dataset = DataSet(common_params=common_params, dataset_params=dataset_params)
 
