@@ -6,6 +6,8 @@ testdata/*
 imagenethttp.txt
 *.pyc
 data/Opencountry/*
+resources/Opencountry/*
+resources/full_imagenet/*
 output_results/*
 data/__*
 models/*
